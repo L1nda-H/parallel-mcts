@@ -82,7 +82,7 @@ public:
 
 	int update_board(Point pos);
 
-	int score();
+	int quick_score();
 	
 	COLOR ToPlay() const {
 		return player;

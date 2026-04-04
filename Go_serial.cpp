@@ -1,3 +1,4 @@
+#include<stdio.h>
 #include "Go.h"
 #include "common.h"
 
@@ -76,3 +77,90 @@ std::vector<Point> Board::get_next_legal_moves() {
     return allowed_moves;
 }
 
+int Board::update_board(Point pos) {
+    setBoard(pos.i, pos.j, player);
+
+    COLOR op_color = static_cast<COLOR>(player ^ 3);
+    std::vector<bool> visited(BSIZEIDX * BSIZEIDX, false);
+    std::deque<Point> q1;
+    std::deque<Point> q2;    
+
+    int total = 0;
+    for(int d = 0; d < 4; d++) {
+        int ni = pos.i + dir[d][0];
+        int nj = pos.j + dir[d][1];
+
+        if (getBoard(ni, nj) == op_color && !visited[ni * BSIZEIDX + nj]) {
+            int liberty = 0;
+            q1.push_back(Point(ni, nj));
+            q2.push_back(Point(q1.front()));
+            while(q1.size() != 0) {
+                Point f = q1.front();
+                q1.pop_front();
+                visited[ni * BSIZEIDX + nj] = true;
+                for (int dd = 0; dd < 4; dd++) {
+                    ni = f.i + dir[dd][0];
+                    nj = f.j + dir[dd][1];
+                    if (visited[ni * BSIZEIDX + nj])continue;
+					if (getBoard(ni, nj) == op_color) {
+						Point tp = Point(ni, nj);
+						q1.push_back(tp);
+						q2.push_back(tp);
+					} else if (getBoard(ni, nj) == EMPTY) {
+						liberty++;
+					}
+                }
+            }
+            if (liberty == 0) {
+				total += q2.size();
+				for (std::deque<Point>::iterator it = q2.begin(); it != q2.end(); it++) {
+					Point p = *it;
+					setBoard(p.i, p.j, EMPTY);
+				}
+			}
+			q2.clear();
+        }
+    }
+    player = op_color;
+    return total;
+}
+
+void Board::print_board() {
+    for (int i = 0; i < BSIZE + 1; i++) {
+		printf("=");
+	}
+	printf("\n");
+	for (int i = 1; i < BSIZE + 1 ; i++) {
+		for (int j = 1; j < BSIZE + 1; j++) {
+			if (getBoard(i, j) == WHITE) {
+				printf("W");
+			} else if (getBoard(i, j) == BLACK) {
+				printf("B");
+			} else {
+				printf(".");
+			}
+		}
+		printf("\n");
+	}
+	for (int i = 0; i < BSIZE + 1; i++) {
+		printf("=");
+	}
+	printf("\n");
+}
+
+int Board::quick_score() {
+    int black = 0;
+	int white = 0;
+
+	for (int i = 1; i < BSIZE + 1; i++) {
+		for (int j = 1; j < BSIZE + 1; j++) {
+			if (getBoard(i, j) == WHITE) {
+				white++;
+			} else if (getBoard(i, j) == BLACK) {
+				black++;
+			}
+		}
+	}
+
+	return black - white;
+}
