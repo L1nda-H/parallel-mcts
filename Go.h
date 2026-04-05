@@ -17,7 +17,6 @@ private:
 	int *board;  	// 1-d array to represent 2d board
 	bool canEat(int i, int j, COLOR color);
 	bool isSuicide(int i, int j, COLOR color);
-	int remain;
 	COLOR player;	// current player
 
 public:
@@ -36,8 +35,6 @@ public:
 		}
 
 		player = BLACK; // black play first
-
-		remain = BSIZE * BSIZE;
 	}
 
 	//copy constructor
@@ -52,14 +49,12 @@ public:
 		}
 
 		player = b.ToPlay();
-		remain = b.getRemain();
 	}
 
 	void clear() {
 		int total = (BSIZE + 2) * (BSIZE + 2);
 		
 		memset(board, 0, sizeof(int) * total);
-		remain = BSIZE * BSIZE;
 
 		//set the border
 		for (int i = 0; i < BSIZE + 2; i++) {
@@ -94,10 +89,6 @@ public:
 
 	void setBoard(int i, int j, COLOR c) {
 		board[i * (BSIZE + 2) + j] = c;
-	}
-
-	int getRemain() const {
-		return remain;
 	}
 };
 
