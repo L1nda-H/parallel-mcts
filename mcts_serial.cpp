@@ -5,7 +5,8 @@
 #include "point.h"
 
 #define C 1.4
-#define EPSILON 10e-6
+#define EPSILON 10e-64
+#define MAX_STEP 300 // avoid repeat game
 
 Point Mcts::run(Board* curr_board) {
 	Board* curr_board_copy = new Board();
@@ -85,15 +86,32 @@ void Mcts::run_iteration(TreeNode* root, Board* curr_board) {
         node->set_expandable(false);
 
         if (!node->get_children().empty()) {
-            node = node->get_children()[0]; // TODO: this should select random number
+            node = node->get_children()[0]; // TODO: this should select random number and also be randomized across threads
+			curr_board->update_board(node->get_move());
         }
     }
 
-    double result = run_simulation();
+	// runs one simulation
+	int wins = 0;
+	int sims = 0;
+    double result = run_simulation(curr_board, &wins, &sims);
 
-    backprop(node, node->wins, node->sims);
+    backprop(node, wins, sims);
 }
 
-double run_simulation() {
+double run_simulation(Board* b, int* wins, int* sims) {
+	COLOR player = b->ToPlay();
+	int curr_step = 0;
+	while (curr_step < MAX_STEP) {
+		std::vector<Point> moves = b->get_next_legal_moves();
+		if (moves.size() == 0) break;
+		b->update_board(moves[0]); // TODO this should select a random move and should be random across threads when parallelized
+		curr_step++;
+	}
 
+	int score = b->quick_score();
+	if ((score > 0 && player == BLACK) || (score < 0 && player == WHITE)) {
+		*wins += 1;
+		*sims += 1;
+	}
 }

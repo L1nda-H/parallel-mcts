@@ -8,6 +8,7 @@
 #include <deque>
 #include <vector>
 #include <string.h>
+#include <cstring>
 
 enum COLOR {WHITE = 1, BLACK = 2, EMPTY = 0, OUT = 3};
 
@@ -77,8 +78,10 @@ public:
 		board[i * (BSIZE + 2) + j] = c;
 	}
 
-	static Board copy_board(const Board* b) {
+	void copy_board(const Board* other) {
+		this->player = other->player;
 		
+		std::memcpy(this->board.data(), other->board.data(), this->board.size() * sizeof(int));
 	}
 };
 
