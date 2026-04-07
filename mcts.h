@@ -88,7 +88,6 @@ public:
 	void expand(TreeNode* node, Board* board);
 	void backprop(TreeNode* node, int win_increase, int sim_increase);
 
-	// Board* get_board(TreeNode* node, Point* move);
 	bool checkAbort();
 };
 

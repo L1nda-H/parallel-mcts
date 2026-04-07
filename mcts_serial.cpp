@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <time.h>
+#include <random>
 
 #include "mcts.h"
 #include "Go.h"
@@ -84,10 +85,16 @@ void Mcts::backprop(TreeNode* node, int win_increase, int sim_increase) {
 void run_simulation(Board* b, double* wins, double* sims) {
 	COLOR player = b->ToPlay();
 	int curr_step = 0;
+	thread_local std::mt19937 rng(std::random_device{}());
 	while (curr_step < MAX_STEP) {
 		std::vector<Point> moves = b->get_next_legal_moves();
-		if (moves.size() == 0) break;
-		b->update_board(moves[0]); // TODO this should select a random move and should be random across threads when parallelized
+		if (moves.size() == 0) {
+			break;
+		}
+
+		std::uniform_int_distribution<int> dist(0, moves.size() - 1);
+		b->update_board(moves[dist(rng)]); 
+
 		curr_step++;
 	}
 
@@ -110,8 +117,13 @@ void Mcts::run_iteration(TreeNode* root, Board* curr_board) {
         expand(node, curr_board);
         node->set_expandable(false);
 
-        if (!node->get_children().empty()) {
-            node = node->get_children()[0]; // TODO: this should select random number and also be randomized across threads
+		thread_local std::mt19937 rng(std::random_device{}());
+
+		std::vector<TreeNode*> children = node->get_children();
+
+        if (!children.empty()) {
+			std::uniform_int_distribution<int> dist(0, children.size() - 1);
+            node = children[dist(rng)]; 
 			curr_board->update_board(node->get_move());
         }
     }

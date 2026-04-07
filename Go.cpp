@@ -79,7 +79,6 @@ std::vector<Point> Board::get_next_legal_moves() {
 
 int Board::update_board(Point pos) {
     setBoard(pos.i, pos.j, player);
-
     COLOR op_color = static_cast<COLOR>(player ^ 3);
     std::vector<bool> visited(BSIZEIDX * BSIZEIDX, false);
     std::deque<Point> q1;
@@ -94,10 +93,10 @@ int Board::update_board(Point pos) {
             int liberty = 0;
             q1.push_back(Point(ni, nj));
             q2.push_back(Point(q1.front()));
-            while(q1.size() != 0) {
+            while(!q1.empty()) {
                 Point f = q1.front();
                 q1.pop_front();
-                visited[ni * BSIZEIDX + nj] = true;
+                visited[f.i * BSIZEIDX + f.j] = true;
                 for (int dd = 0; dd < 4; dd++) {
                     ni = f.i + dir[dd][0];
                     nj = f.j + dir[dd][1];
