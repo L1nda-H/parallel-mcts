@@ -60,19 +60,17 @@ public:
 class Mcts {
 private:
 	TreeNode* root;
+	struct timespec start, end;
 	double maxTime;
 	bool abort; 
-	int bd_size;
 
 public:
-	Mcts(int size, double time) {
-		bd_size = size;
+	Mcts(double time) {
 		root = new TreeNode();
 		maxTime = time;
 	}
 
-	Mcts(int size, double time, Point move) {
-		bd_size = size;
+	Mcts(double time, Point move) {
 		root = new TreeNode(move);
 		maxTime = time;
 	}
@@ -88,9 +86,8 @@ public:
 	void expand(TreeNode* node, Board* board);
 	void backprop(TreeNode* node, int win_increase, int sim_increase);
 
-	Board* get_board(TreeNode* node, Point* move);
+	// Board* get_board(TreeNode* node, Point* move);
 	bool checkAbort();
-	void update(TreeNode* node, double* win, double* sim,  int incre, int thread_num);
 };
 
 #endif

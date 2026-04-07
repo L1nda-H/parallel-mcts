@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <time.h>
 
 #include "mcts.h"
 #include "Go.h"
@@ -7,8 +8,12 @@
 #define C 1.4
 #define EPSILON 10e-64
 #define MAX_STEP 300 // avoid repeat game
+#define BILLION 1000000000L
+#define MILLION 1000000.0
+#define CLOCK_RATE 1215500.0 // titianx  745000.0; // For tesla K40
 
 Point Mcts::run(Board* curr_board) {
+	clock_gettime(CLOCK_REALTIME, &start);
 	Board* curr_board_copy = new Board();
 	while(!checkAbort()) {
 		curr_board_copy->copy_board(curr_board);
@@ -92,14 +97,14 @@ void Mcts::run_iteration(TreeNode* root, Board* curr_board) {
     }
 
 	// runs one simulation
-	int wins = 0;
-	int sims = 0;
+	double wins = 0.0;
+	double sims = 0.0;
     double result = run_simulation(curr_board, &wins, &sims);
 
     backprop(node, wins, sims);
 }
 
-double run_simulation(Board* b, int* wins, int* sims) {
+double run_simulation(Board* b, double* wins, double* sims) {
 	COLOR player = b->ToPlay();
 	int curr_step = 0;
 	while (curr_step < MAX_STEP) {
@@ -111,7 +116,17 @@ double run_simulation(Board* b, int* wins, int* sims) {
 
 	int score = b->quick_score();
 	if ((score > 0 && player == BLACK) || (score < 0 && player == WHITE)) {
-		*wins += 1;
-		*sims += 1;
+		*wins += 1.0;
+		*sims += 1.0;
 	}
+}
+
+bool Mcts::checkAbort() {
+	if (!abort) {
+		u_int64_t diff;
+		clock_gettime(CLOCK_REALTIME, &end);
+		diff = BILLION * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
+		abort = diff / MILLION > maxTime;
+	}
+	return abort;
 }
