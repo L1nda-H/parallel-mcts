@@ -10,6 +10,8 @@
 #include <string.h>
 #include <cstring>
 
+#define KOMI 7.5 
+
 enum COLOR {WHITE = 1, BLACK = 2, EMPTY = 0, OUT = 3};
 
 class Board {
@@ -67,6 +69,8 @@ public:
 	int update_board(Point pos);
 
 	int quick_score();
+
+	double aga_score();
 	
 	COLOR ToPlay() const {
 		return player;

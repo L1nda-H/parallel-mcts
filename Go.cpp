@@ -163,3 +163,64 @@ int Board::quick_score() {
 
 	return black - white;
 }
+
+double Board::aga_score() {
+    int black_score = 0;
+    int white_score = 0;
+    
+    std::vector<char> visited(BSIZEIDX * BSIZEIDX, 0);
+
+    for (int i = 1; i <= BSIZE; i++) {
+        for (int j = 1; j <= BSIZE; j++) {
+            int idx = i * BSIZEIDX + j;
+            COLOR color = static_cast<COLOR>(getBoard(i, j)); 
+            
+            if (color == BLACK) {
+                black_score++;
+            } 
+            else if (color == WHITE) {
+                white_score++;
+            } 
+            else if (color == EMPTY && !visited[idx]) {
+                int empty_count = 0;
+                bool touches_black = false;
+                bool touches_white = false;
+                
+                std::deque<Point> q;
+                q.push_back(Point(i, j));
+                visited[idx] = 1;
+                
+                while (!q.empty()) {
+                    Point curr = q.front();
+                    q.pop_front();
+                    empty_count++;
+                    
+                    for (int d = 0; d < 4; d++) {
+                        int ni = curr.i + dir[d][0];
+                        int nj = curr.j + dir[d][1];
+                        int nidx = ni * BSIZEIDX + nj;
+                        
+                        COLOR ncolor = static_cast<COLOR>(getBoard(ni, nj));
+                        
+                        if (ncolor == BLACK) {
+                            touches_black = true;
+                        } else if (ncolor == WHITE) {
+                            touches_white = true;
+                        } else if (ncolor == EMPTY && !visited[nidx]) {
+                            visited[nidx] = 1;
+                            q.push_back(Point(ni, nj));
+                        }
+                    }
+                }
+                
+                if (touches_black && !touches_white) {
+                    black_score += empty_count;
+                } else if (touches_white && !touches_black) {
+                    white_score += empty_count;
+                }
+            }
+        }
+    }
+
+    return (black_score) - (white_score + KOMI); 
+}

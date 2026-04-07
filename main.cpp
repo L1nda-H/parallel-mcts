@@ -3,8 +3,8 @@
 #include "mcts.h"
 #include "point.h"
 
-#define NUM_MOVES 10
-#define TIME_EACH_MOVE 10 // ms
+#define NUM_MOVES 20
+#define TIME_EACH_MOVE 10*1000 // ms
 
 int main() {
 	Mcts* black;
@@ -34,6 +34,14 @@ int main() {
 		delete black;
 	}
 
-    // TODO MAKE MORE ACCURATE SCORE FUNCTION FOR BOARD
-	printf("score:%d\n", board.quick_score());
+	double fin_score = board.aga_score();
+
+	printf("score:%.2f\n", fin_score);
+	if (fin_score < 0) {
+		printf("White wins!\n");
+	} else if (fin_score > 0) {
+		printf("Black wins!\n");
+	} else {
+		printf("Draw\n");
+	}
 }

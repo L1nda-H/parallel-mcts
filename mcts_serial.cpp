@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <random>
+#include <algorithm>
 
 #include "mcts.h"
 #include "Go.h"
@@ -8,12 +9,9 @@
 
 #define C 1.4
 #define EPSILON 10e-64
-#define MAX_STEP 10 // avoid repeat game
+#define MAX_STEP 100 // redefine to avoid repeat game
 #define BILLION 1000000000L
 #define MILLION 1000000.0
-#define CLOCK_RATE 1215500.0 // titianx  745000.0; // For tesla K40
-
-// void run_simulation(Board* b, double* wins, double* sims);
 
 Point Mcts::run(Board* curr_board) {
 	clock_gettime(CLOCK_REALTIME, &start);
@@ -65,6 +63,11 @@ TreeNode* Mcts::selection(TreeNode* node) {
 
 void Mcts::expand(TreeNode* node, Board* board) {
 	std::vector<Point> moves_vec = board->get_next_legal_moves();
+
+	thread_local std::mt19937 rng(std::random_device{}());
+    
+    std::shuffle(moves_vec.begin(), moves_vec.end(), rng);
+	
 	while (moves_vec.size() > 0) {
 		Point nxt_move = moves_vec.back();
 		node->add_children(new TreeNode(nxt_move));
