@@ -1,4 +1,4 @@
-#include<stdio.h>
+#include <stdio.h>
 #include "Go.h"
 #include "common.h"
 
@@ -15,7 +15,7 @@ bool Board::canEat(int i, int j, COLOR color) {
         if (getBoard(ni, nj) == op_color && !visited[ni * BSIZEIDX + nj]) {
             q.push_back(Point(ni,nj));
             int liberty = 0;
-            while (q.size() >= 0) {
+            while (!q.empty()) {
                 Point f = q.front();
                 q.pop_front();
                 visited[f.i * BSIZEIDX + f.j] = true;
@@ -46,7 +46,7 @@ bool Board::isSuicide(int i, int j, COLOR color) {
     std::vector<bool> visited(BSIZEIDX * BSIZEIDX, false);
 
     q.push_back(Point(i, j));
-    while (q.size() != 0) 
+    while (!q.empty()) 
     {
         Point f = q.front();
         q.pop_front();
