@@ -18,7 +18,7 @@ bool Board::canEat(int i, int j, COLOR color) {
             while (q.size() >= 0) {
                 Point f = q.front();
                 q.pop_front();
-                visited[f.i, f.j] = true;
+                visited[f.i * BSIZEIDX + f.j] = true;
                 for (int dd = 0; dd < 4; dd++) {
                     int nni = f.i + dir[dd][0];
                     int nnj = f.j + dir[dd][1];

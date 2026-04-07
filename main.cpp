@@ -4,12 +4,12 @@
 #include "point.h"
 
 #define NUM_MOVES 10
-#define TIME_EACH_MOVE 2*60*1000 // ms
+#define TIME_EACH_MOVE 10 // ms
 
 int main() {
 	Mcts* black;
 	Mcts* white;
-	Point p;
+	Point p = Point(-1, -1);
 	Board board;
 	int step = 0;
     

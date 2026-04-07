@@ -15,13 +15,14 @@ enum COLOR {WHITE = 1, BLACK = 2, EMPTY = 0, OUT = 3};
 class Board {
 private:
 	int dir[4][2] = {{1, 0}, {0, 1}, { -1, 0}, {0, -1}};
-	std::vector<int> board{(BSIZE + 2) * (BSIZE + 2)}; 
+	std::vector<int> board; 
 	bool canEat(int i, int j, COLOR color);
 	bool isSuicide(int i, int j, COLOR color);
 	COLOR player;	// current player
 
 public:
 	Board() {
+		board.resize(BSIZEIDX * BSIZEIDX);
 		//set the border
 		for (int i = 0; i < BSIZE + 2; i++) {
 			board[i * (BSIZE + 2)] = 3;
@@ -35,6 +36,7 @@ public:
 
 	//copy constructor
 	Board(const Board& b) {
+		board.resize(BSIZEIDX * BSIZEIDX);
 		for (int i = 0; i < BSIZE + 2; i++) {
 			for (int j = 0; j < BSIZE + 2; j++) {
 				board[i * (BSIZE + 2) + j] = b.getBoard(i, j);

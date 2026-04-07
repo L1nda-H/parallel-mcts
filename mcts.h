@@ -68,11 +68,13 @@ public:
 	Mcts(double time) {
 		root = new TreeNode();
 		maxTime = time;
+		abort = false;
 	}
 
 	Mcts(double time, Point move) {
 		root = new TreeNode(move);
 		maxTime = time;
+		abort = false;
 	}
 
 	~Mcts() {

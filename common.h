@@ -1,2 +1,2 @@
-#define BSIZE 13
+#define BSIZE 9
 #define BSIZEIDX (BSIZE+2)

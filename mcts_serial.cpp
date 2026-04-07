@@ -7,10 +7,12 @@
 
 #define C 1.4
 #define EPSILON 10e-64
-#define MAX_STEP 300 // avoid repeat game
+#define MAX_STEP 10 // avoid repeat game
 #define BILLION 1000000000L
 #define MILLION 1000000.0
 #define CLOCK_RATE 1215500.0 // titianx  745000.0; // For tesla K40
+
+// void run_simulation(Board* b, double* wins, double* sims);
 
 Point Mcts::run(Board* curr_board) {
 	clock_gettime(CLOCK_REALTIME, &start);
@@ -48,6 +50,9 @@ TreeNode* Mcts::selection(TreeNode* node) {
 	std::vector<TreeNode*> children = node->get_children();
 	for (std::vector<TreeNode*>::iterator it = children.begin(); it != children.end(); it++) {
 		TreeNode* c = *it;
+		if (c->sims == 0.0) {
+			return c;
+		}
 		double v = c->wins / (c->sims + EPSILON) + C * sqrt(log(n + EPSILON) / (c->sims + EPSILON));
 		if (v > maxv) {
 			maxv = v;
@@ -68,43 +73,15 @@ void Mcts::expand(TreeNode* node, Board* board) {
 
 void Mcts::backprop(TreeNode* node, int win_increase, int sim_increase) {
 	bool lv = false;
-	while (node->parent != NULL) {
-		node = node->parent;
+	while (node != NULL) {
 		node->sims += sim_increase;
 		if (lv)node->wins += win_increase;
+		node = node->parent;
 		lv = !lv;
 	}
 }
 
-void Mcts::run_iteration(TreeNode* root, Board* curr_board) {
-    TreeNode* node = root;
-    curr_board->update_board(root->get_move());
-
-    while(!node->is_expandable()) {
-        node = selection(node);
-        curr_board->update_board(node->get_move());
-    }
-
-    if (node->is_expandable()) {
-        expand(node, curr_board);
-        delete curr_board;
-        node->set_expandable(false);
-
-        if (!node->get_children().empty()) {
-            node = node->get_children()[0]; // TODO: this should select random number and also be randomized across threads
-			curr_board->update_board(node->get_move());
-        }
-    }
-
-	// runs one simulation
-	double wins = 0.0;
-	double sims = 0.0;
-    double result = run_simulation(curr_board, &wins, &sims);
-
-    backprop(node, wins, sims);
-}
-
-double run_simulation(Board* b, double* wins, double* sims) {
+void run_simulation(Board* b, double* wins, double* sims) {
 	COLOR player = b->ToPlay();
 	int curr_step = 0;
 	while (curr_step < MAX_STEP) {
@@ -117,8 +94,34 @@ double run_simulation(Board* b, double* wins, double* sims) {
 	int score = b->quick_score();
 	if ((score > 0 && player == BLACK) || (score < 0 && player == WHITE)) {
 		*wins += 1.0;
-		*sims += 1.0;
 	}
+	*sims += 1.0;
+}
+
+void Mcts::run_iteration(TreeNode* root, Board* curr_board) {
+    TreeNode* node = root;
+
+    while(!node->is_expandable() && !node->get_children().empty()) {
+        node = selection(node);
+        curr_board->update_board(node->get_move());
+    }
+
+    if (node->is_expandable()) {
+        expand(node, curr_board);
+        node->set_expandable(false);
+
+        if (!node->get_children().empty()) {
+            node = node->get_children()[0]; // TODO: this should select random number and also be randomized across threads
+			curr_board->update_board(node->get_move());
+        }
+    }
+
+	// runs one simulation
+	double wins = 0.0;
+	double sims = 0.0;
+    run_simulation(curr_board, &wins, &sims);
+
+    backprop(node, wins, sims);
 }
 
 bool Mcts::checkAbort() {
