@@ -7,6 +7,7 @@
 
 #include "point.h"
 #include "Go.h"
+#include "omp.h"
 
 class TreeNode {
 private:
@@ -18,15 +19,18 @@ public:
 	double wins; // Number of wins reached from this node
 	double sims; // Number of simulations done on this node
 	TreeNode* parent;
+	omp_lock_t lock;
+
 	TreeNode(Point curr_move)
 			:  expandable(true), wins(0.0), sims(0.0), parent(NULL) {
 				move = curr_move;
-			
+			omp_init_lock(&lock);
 	}
 
 	TreeNode()
 			:  expandable(true), wins(0.0), sims(0.0), parent(NULL) {
 				move = Point(-1,-1);
+			omp_init_lock(&lock);
 	}
 
 	~TreeNode() {
@@ -34,6 +38,7 @@ public:
 			delete *it;
 		}
 		parent = NULL;
+		omp_destroy_lock(&lock);
 	}
 
 	bool is_expandable() {
