@@ -13,7 +13,7 @@
 #define BILLION 1000000000L
 #define MILLION 1000000.0
 
-Point Mcts::run(Board* curr_board) {
+Point Mcts::run(Board* curr_board, int rank) {
 	clock_gettime(CLOCK_REALTIME, &start);
 	Board* curr_board_copy = new Board();
 	while(!checkAbort()) {

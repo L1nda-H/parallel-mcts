@@ -7,6 +7,7 @@
 #include "Go.h"
 #include "point.h"
 #include "omp.h"
+#include "mpi.h"
 
 #define C 1.4
 #define EPSILON 10e-64
@@ -15,9 +16,29 @@
 #define MILLION 1000000.0
 #define VIRTUAL_LOSS 1.0
 #define NUM_THREADS 32
+#define MAX_MOVES 82
 
+int point_to_id(Point p){
+	if(p.i == -1 && p.j == -1){
+		return 82;
+	}
 
-Point Mcts::run(Board* curr_board) {
+	return p.i * 9 + p.j;
+}
+
+Point id_to_point(int id){
+	if(id == 82){
+		return Point(-1, -1);
+	}
+
+	return Point(id / 9, id % 9);
+}
+
+Point Mcts::run(Board* curr_board, int rank) {
+	// TODO: need to define rank somehow
+	// sync all MPI processes before starting
+	MPI_Barrier(MPI_COMM_WORLD);
+
 	clock_gettime(CLOCK_REALTIME, &start);
 	#pragma omp parallel
 	{
@@ -29,22 +50,40 @@ Point Mcts::run(Board* curr_board) {
 		delete curr_board_copy;
 	}
 
-	double maxv = -1.0;
+	double local_wins[MAX_MOVES] = {0.0};
+	double local_sims[MAX_MOVES] = {0.0};
+
 	TreeNode* best = NULL;
 	std::vector<TreeNode*> children = root->get_children();
 	for (std::vector<TreeNode*>::iterator it = children.begin(); it != children.end(); it++) {
 		TreeNode* c = *it;
-		double v = c->wins / (c->sims + EPSILON);
-		if (v > maxv) {
-			maxv = v;
-			best = c;
+		int id = point_to_id(c->get_move());
+		local_wins[id] = c->wins;
+		local_wins[id] = c->sims;
+	}
+
+	double global_wins[MAX_MOVES] = {0.0};
+	double global_sims[MAX_MOVES] = {0.0};
+
+	MPI_Reduce(local_wins, global_wins, MAX_MOVES, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+	MPI_Reduce(local_sims, global_sims, MAX_MOVES, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+	int best_id = 82;
+	
+	if(rank == 0){
+		double maxv = -1.0;
+		for(int i = 0; i < MAX_MOVES; i++){
+			double v = global_wins[i] / (global_sims[i] + EPSILON);
+			if(v > maxv){
+				maxv = v;
+				best_id = i;
+			}
 		}
 	}
 
-	if (best == NULL) {
-		return Point(-1,-1);
-	}
-	return best->get_move();
+	MPI_Bcast(&best_id, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	
+	return id_to_point(best_id);
 }
 
 TreeNode* Mcts::selection(TreeNode* node) {
