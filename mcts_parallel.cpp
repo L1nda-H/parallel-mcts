@@ -2,6 +2,8 @@
 #include <time.h>
 #include <random>
 #include <algorithm>
+#include <iostream>
+#include <numeric>
 
 #include "mcts.h"
 #include "Go.h"
@@ -34,7 +36,7 @@ Point id_to_point(int id){
 	return Point(id / 9, id % 9);
 }
 
-Point Mcts::run(Board* curr_board, int rank) {
+Point Mcts::run(Board* curr_board, int rank, int& num_games) {
 	// TODO: need to define rank somehow
 	// sync all MPI processes before starting
 	MPI_Barrier(MPI_COMM_WORLD);
@@ -45,12 +47,11 @@ Point Mcts::run(Board* curr_board, int rank) {
 		Board* curr_board_copy = new Board();
 		while(!checkAbort()) {
 			curr_board_copy->copy_board(curr_board);
-			run_iteration(root, curr_board_copy);
+			run_iteration(root, curr_board_copy, num_games);
 		}
 		delete curr_board_copy;
 	}
 
-	double local_wins[MAX_MOVES] = {0.0};
 	double local_sims[MAX_MOVES] = {0.0};
 
 	TreeNode* best = NULL;
@@ -58,14 +59,11 @@ Point Mcts::run(Board* curr_board, int rank) {
 	for (std::vector<TreeNode*>::iterator it = children.begin(); it != children.end(); it++) {
 		TreeNode* c = *it;
 		int id = point_to_id(c->get_move());
-		local_wins[id] = c->wins;
-		local_wins[id] = c->sims;
+		local_sims[id] = c->sims;
 	}
 
-	double global_wins[MAX_MOVES] = {0.0};
 	double global_sims[MAX_MOVES] = {0.0};
 
-	MPI_Reduce(local_wins, global_wins, MAX_MOVES, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 	MPI_Reduce(local_sims, global_sims, MAX_MOVES, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
 	int best_id = 82;
@@ -73,7 +71,7 @@ Point Mcts::run(Board* curr_board, int rank) {
 	if(rank == 0){
 		double maxv = -1.0;
 		for(int i = 0; i < MAX_MOVES; i++){
-			double v = global_wins[i] / (global_sims[i] + EPSILON);
+			double v = global_sims[i];
 			if(v > maxv){
 				maxv = v;
 				best_id = i;
@@ -82,7 +80,11 @@ Point Mcts::run(Board* curr_board, int rank) {
 	}
 
 	MPI_Bcast(&best_id, 1, MPI_INT, 0, MPI_COMM_WORLD);
-	
+
+	if(rank == 0){
+		num_games += std::accumulate(std::begin(global_sims), std::end(global_sims), 0);
+	}
+
 	return id_to_point(best_id);
 }
 
@@ -159,7 +161,7 @@ void run_simulation(Board* b, double* wins, double* sims) {
 	*sims += 1.0;
 }
 
-void Mcts::run_iteration(TreeNode* root, Board* curr_board) {
+void Mcts::run_iteration(TreeNode* root, Board* curr_board, int& num_games) {
     TreeNode* node = root;
 
 	#pragma omp atomic

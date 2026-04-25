@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <chrono>
 #include "Go.h"
 #include "mcts.h"
 #include "point.h"
@@ -15,6 +16,7 @@ int main(int argc, char** argv) {
 	int step = 0;
 
 	int num_procs, rank;
+	int num_games = 0;
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     
@@ -22,9 +24,11 @@ int main(int argc, char** argv) {
 		printf("hybrid start. black first\n");
 	}
 
+	auto start_time = std::chrono::steady_clock::now();
+
 	while (step < NUM_MOVES) {
 		black = new Mcts(TIME_EACH_MOVE, p);
-		p = black->run(&board, rank);
+		p = black->run(&board, rank, num_games);
 		step++;
 		if(rank == 0){
 			printf("black : (%d,%d)\n", p.i, p.j);
@@ -37,7 +41,7 @@ int main(int argc, char** argv) {
 		}
 
 		white = new Mcts(TIME_EACH_MOVE, p);
-		p = white->run(&board, rank);
+		p = white->run(&board, rank, num_games);
 		step++;
 		
 		if(rank == 0){
@@ -54,6 +58,10 @@ int main(int argc, char** argv) {
 		delete black;
 	}
 
+	auto end_time = std::chrono::steady_clock::now();
+	std::chrono::duration<double> diff = end_time - start_time;
+	double seconds = diff.count();
+
 	double fin_score = board.aga_score();
 
 	if(rank == 0){
@@ -65,6 +73,8 @@ int main(int argc, char** argv) {
 		} else {
 			printf("Draw\n");
 		}
+		
+		printf("%d games for %.2f seconds (%.2f GPS)\n", num_games, seconds, num_games / seconds);
 	}
 
 

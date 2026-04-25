@@ -86,9 +86,9 @@ public:
 		delete root;
 	}
 
-	Point run(Board* curr_board);
+	Point run(Board* curr_board, int rank, int& num_games);
 	
-	void run_iteration(TreeNode* node, Board* curr_board);
+	void run_iteration(TreeNode* node, Board* curr_board, int& num_games);
 	TreeNode *selection(TreeNode* node);
 	void expand(TreeNode* node, Board* board);
 	void backprop(TreeNode* node, int win_increase, int sim_increase);

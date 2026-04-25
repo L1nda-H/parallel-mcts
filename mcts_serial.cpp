@@ -2,6 +2,7 @@
 #include <time.h>
 #include <random>
 #include <algorithm>
+#include <iostream>
 
 #include "mcts.h"
 #include "Go.h"
@@ -13,12 +14,12 @@
 #define BILLION 1000000000L
 #define MILLION 1000000.0
 
-Point Mcts::run(Board* curr_board, int rank) {
+Point Mcts::run(Board* curr_board, int rank, int& num_games) {
 	clock_gettime(CLOCK_REALTIME, &start);
 	Board* curr_board_copy = new Board();
 	while(!checkAbort()) {
 		curr_board_copy->copy_board(curr_board);
-		run_iteration(root, curr_board_copy);
+		run_iteration(root, curr_board_copy, num_games);
 	}
 
 	double maxv = -1.0;
@@ -26,7 +27,7 @@ Point Mcts::run(Board* curr_board, int rank) {
 	std::vector<TreeNode*> children = root->get_children();
 	for (std::vector<TreeNode*>::iterator it = children.begin(); it != children.end(); it++) {
 		TreeNode* c = *it;
-		double v = c->wins / (c->sims + EPSILON);
+		double v = c->sims;
 		if (v > maxv) {
 			maxv = v;
 			best = c;
@@ -108,7 +109,7 @@ void run_simulation(Board* b, double* wins, double* sims) {
 	*sims += 1.0;
 }
 
-void Mcts::run_iteration(TreeNode* root, Board* curr_board) {
+void Mcts::run_iteration(TreeNode* root, Board* curr_board, int& num_games) {
     TreeNode* node = root;
 
     while(!node->is_expandable() && !node->get_children().empty()) {
@@ -135,6 +136,7 @@ void Mcts::run_iteration(TreeNode* root, Board* curr_board) {
 	double wins = 0.0;
 	double sims = 0.0;
     run_simulation(curr_board, &wins, &sims);
+	num_games += 1;
 
     backprop(node, wins, sims);
 }
