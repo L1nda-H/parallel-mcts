@@ -26,7 +26,9 @@ public:
 
 	static std::string pt_to_gtp(Point p) {
 		std::string coord = "";
-		coord += (static_cast<char>(p.i + 64));
+		char col = static_cast<char>(p.i + 64);
+		if (col >= 'I') col++;
+		coord += col;
 		coord += (std::to_string(p.j));
 		return coord;
 	}

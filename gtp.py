@@ -14,7 +14,7 @@ def gtp_cmd(process, cmd):
         response = line
     return response.replace("= ", "").strip()
 
-def run_match(engine1_cmd, engine2_cmd, games=50):
+def run_match(engine1_cmd, engine2_cmd, games=1):
     wins_e1 = 0
     wins_e2 = 0
     
@@ -86,4 +86,4 @@ def run_match(engine1_cmd, engine2_cmd, games=50):
 
 if __name__ == "__main__":
     # Point these directly to executables
-    run_match("./go_mcts", "./pachi/pachi -t 1", games=50)
+    run_match("./build/go_mcts", "./pachi/pachi -t 1", games=1)

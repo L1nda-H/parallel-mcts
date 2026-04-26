@@ -4,3 +4,7 @@
 .vscode/
 pachi/
 pachi/*
+CMakeFiles/*
+CMakeFiles/
+*.cmake
+build/

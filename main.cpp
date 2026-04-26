@@ -17,8 +17,7 @@ int main(int argc, char** argv) {
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	
-	Mcts* black;
-	Mcts* white;
+	Mcts* engine;
 	Point p = Point(-1, -1);
 	Board board;
 	int step = 0;
@@ -27,6 +26,8 @@ int main(int argc, char** argv) {
 	bool running = true;
 	bool root = rank == 0;
 	int cmd_len = 0;
+
+	auto start_time = std::chrono::steady_clock::now();
 
 	while (running) {
 		if (root) {
@@ -63,7 +64,7 @@ int main(int argc, char** argv) {
 			if (root) std::cout << "= " << BSIZE << "\n\n";
 		} else if (cmd_type == "clear_board")
 		{
-			board = Board(); 
+			board.clear(); 
             if (root) std::cout << "=\n\n";
 		} else if (cmd_type == "komi")
 		{
@@ -75,21 +76,22 @@ int main(int argc, char** argv) {
 			
 			Point p = Point (coord);
 			board.update_board(p);
+			if (root) std::cout << "=\n\n";
 		} else if (cmd_type == "genmove")
 		{
 			std::string color;
             ss >> color;
 
-            Mcts* engine = new Mcts(TIME_EACH_MOVE, Point(-1, -1));
+            engine = new Mcts(TIME_EACH_MOVE, Point(-1, -1));
             int dummy_games = 0;
-            Point best_move = engine->run(&board, rank, dummy_games);
-            board.update_board(best_move);
+            p = engine->run(&board, rank, dummy_games);
+            board.update_board(p);
 
             if (root) {
-                if (best_move.i == -1) {
+                if (p.i == -1) {
                     std::cout << "= pass\n\n";
                 } else {
-                    std::string gtp_coord = Point::pt_to_gtp(best_move);
+                    std::string gtp_coord = Point::pt_to_gtp(p);
 					std::cout << "= " << gtp_coord << "\n\n";
                 }
             }
@@ -110,43 +112,43 @@ int main(int argc, char** argv) {
 	}
 
     
-	if(rank == 0){
-		printf("hybrid start. black first\n");
-	}
+	// if(rank == 0){
+	// 	printf("hybrid start. black first\n");
+	// }
 
-	auto start_time = std::chrono::steady_clock::now();
+	
 
-	while (step < NUM_MOVES) {
-		black = new Mcts(TIME_EACH_MOVE, p);
-		p = black->run(&board, rank, num_games);
-		step++;
-		if(rank == 0){
-			printf("black : (%d,%d)\n", p.i, p.j);
-		}
+	// while (step < NUM_MOVES) {
+	// 	black = new Mcts(TIME_EACH_MOVE, p);
+	// 	p = black->run(&board, rank, num_games);
+	// 	step++;
+	// 	if(rank == 0){
+	// 		printf("black : (%d,%d)\n", p.i, p.j);
+	// 	}
 		
-		board.update_board(p);
+	// 	board.update_board(p);
 
-		if(rank == 0){
-			board.print_board();
-		}
+	// 	if(rank == 0){
+	// 		board.print_board();
+	// 	}
 
-		white = new Mcts(TIME_EACH_MOVE, p);
-		p = white->run(&board, rank, num_games);
-		step++;
+	// 	white = new Mcts(TIME_EACH_MOVE, p);
+	// 	p = white->run(&board, rank, num_games);
+	// 	step++;
 		
-		if(rank == 0){
-			printf("white : (%d,%d)\n", p.i, p.j);
-		}
+	// 	if(rank == 0){
+	// 		printf("white : (%d,%d)\n", p.i, p.j);
+	// 	}
 
-		board.update_board(p);
+	// 	board.update_board(p);
 
-		if(rank == 0){
-			board.print_board();
-		}
+	// 	if(rank == 0){
+	// 		board.print_board();
+	// 	}
 
-		delete white;
-		delete black;
-	}
+	// 	delete white;
+	// 	delete black;
+	// }
 
 	auto end_time = std::chrono::steady_clock::now();
 	std::chrono::duration<double> diff = end_time - start_time;
