@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <iostream>
 #include "Go.h"
 #include "common.h"
 
@@ -126,25 +127,27 @@ int Board::update_board(Point pos) {
 
 void Board::print_board() {
     for (int i = 0; i < BSIZE + 1; i++) {
-		printf("=");
-	}
-	printf("\n");
-	for (int i = 1; i < BSIZE + 1 ; i++) {
-		for (int j = 1; j < BSIZE + 1; j++) {
-			if (getBoard(i, j) == WHITE) {
-				printf("W");
-			} else if (getBoard(i, j) == BLACK) {
-				printf("B");
-			} else {
-				printf(".");
-			}
-		}
-		printf("\n");
-	}
-	for (int i = 0; i < BSIZE + 1; i++) {
-		printf("=");
-	}
-	printf("\n");
+        std::cout << "=";
+    }
+    std::cout << "\n";
+    
+    for (int i = 1; i < BSIZE + 1 ; i++) {
+        for (int j = 1; j < BSIZE + 1; j++) {
+            if (getBoard(i, j) == WHITE) {
+                std::cout << "W";
+            } else if (getBoard(i, j) == BLACK) {
+                std::cout << "B";
+            } else {
+                std::cout << ".";
+            }
+        }
+        std::cout << "\n";
+    }
+    
+    for (int i = 0; i < BSIZE + 1; i++) {
+        std::cout << "=";
+    }
+    std::cout << "\n";
 }
 
 int Board::quick_score() {

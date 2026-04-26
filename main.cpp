@@ -77,13 +77,33 @@ int main(int argc, char** argv) {
 			board.update_board(p);
 		} else if (cmd_type == "genmove")
 		{
-			/* code */
+			std::string color;
+            ss >> color;
+
+            Mcts* engine = new Mcts(TIME_EACH_MOVE, Point(-1, -1));
+            int dummy_games = 0;
+            Point best_move = engine->run(&board, rank, dummy_games);
+            board.update_board(best_move);
+
+            if (root) {
+                if (best_move.i == -1) {
+                    std::cout << "= pass\n\n";
+                } else {
+                    std::string gtp_coord = Point::pt_to_gtp(best_move);
+					std::cout << "= " << gtp_coord << "\n\n";
+                }
+            }
+            delete engine;
 		} else if (cmd_type == "final_score")
 		{
 			/* code */
 		} else if (cmd_type == "showboard")
 		{
-			/* code */
+			if (root) {
+				std::cout << "=\n";
+				board.print_board();
+				std::cout << "\n";
+			}
 		} else {
 			if (root) std::cout << "unknown command";
 		}
@@ -149,4 +169,5 @@ int main(int argc, char** argv) {
 
 
 	MPI_Finalize();
+	return 0;
 }
