@@ -9,3 +9,5 @@ cd pachi && make DCNN=0 BUILD_KATAGO=0 JOSEKIFIX=0
 ```
 
 List of [Go Text Protocol commands](https://www.lysator.liu.se/~gunnar/gtp/gtp2-spec-draft2/gtp2-spec.html#SECTION00073000000000000000). Is it outdated? I don't know...
+
+Resources for Pachi parameters: https://repo.or.cz/w/pachi.git/blob/HEAD:/README

@@ -16,7 +16,7 @@
 
 Point Mcts::run(Board* curr_board, int rank, int& num_games) {
 	clock_gettime(CLOCK_REALTIME, &start);
-	Board* curr_board_copy = new Board();
+	Board* curr_board_copy = new Board(curr_board->get_bsize());
 	while(!checkAbort()) {
 		curr_board_copy->copy_board(curr_board);
 		run_iteration(root, curr_board_copy, num_games);

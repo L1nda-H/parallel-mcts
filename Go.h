@@ -4,7 +4,6 @@
 
 #include "point.h"
 #include "string.h"
-#include "common.h"
 #include <deque>
 #include <vector>
 #include <string.h>
@@ -21,16 +20,24 @@ private:
 	bool canEat(int i, int j, COLOR color);
 	bool isSuicide(int i, int j, COLOR color);
 	COLOR player;	// current player
+	int bsize;
+	int bsize_idx;
 
 public:
-	Board() {
-		board.resize(BSIZEIDX * BSIZEIDX);
+	Board () {
+		bsize = 0;
+	}
+	
+	Board(int board_size) {
+		bsize = board_size;
+		bsize_idx = board_size + 2;
+		board.resize(bsize_idx * bsize_idx);
 		//set the border
-		for (int i = 0; i < BSIZE + 2; i++) {
-			board[i * (BSIZE + 2)] = 3;
-			board[i * (BSIZE + 2) + BSIZE + 1] = 3;
+		for (int i = 0; i < bsize + 2; i++) {
+			board[i * (bsize + 2)] = 3;
+			board[i * (bsize + 2) + bsize + 1] = 3;
 			board[i] = 3;
-			board[(BSIZE + 2) * (BSIZE + 1) + i] = 3;
+			board[(bsize + 2) * (bsize + 1) + i] = 3;
 		}
 
 		player = BLACK; // black play first
@@ -38,10 +45,12 @@ public:
 
 	//copy constructor
 	Board(const Board& b) {
-		board.resize(BSIZEIDX * BSIZEIDX);
-		for (int i = 0; i < BSIZE + 2; i++) {
-			for (int j = 0; j < BSIZE + 2; j++) {
-				board[i * (BSIZE + 2) + j] = b.getBoard(i, j);
+		bsize = b.bsize;
+		bsize_idx = b.bsize_idx;
+		board.resize(bsize_idx * bsize_idx);
+		for (int i = 0; i < bsize + 2; i++) {
+			for (int j = 0; j < bsize + 2; j++) {
+				board[i * (bsize + 2) + j] = b.getBoard(i, j);
 			}
 		}
 
@@ -52,11 +61,11 @@ public:
 		std::fill(board.begin(), board.end(), 0);
 
 		//set the border
-		for (int i = 0; i < BSIZE + 2; i++) {
-			board[i * (BSIZE + 2)] = 3;
-			board[i * (BSIZE + 2) + BSIZE + 1] = 3;
+		for (int i = 0; i < bsize + 2; i++) {
+			board[i * (bsize + 2)] = 3;
+			board[i * (bsize + 2) + bsize + 1] = 3;
 			board[i] = 3;
-			board[(BSIZE + 2) * (BSIZE + 1) + i] = 3;
+			board[(bsize + 2) * (bsize + 1) + i] = 3;
 		}
 
 		player = BLACK; // black play first
@@ -77,17 +86,21 @@ public:
 	}
 
 	int getBoard(int i, int j) const {
-		return board[i * (BSIZE + 2) + j];
+		return board[i * (bsize + 2) + j];
 	}
 
 	void setBoard(int i, int j, COLOR c) {
-		board[i * (BSIZE + 2) + j] = c;
+		board[i * (bsize + 2) + j] = c;
 	}
 
 	void copy_board(const Board* other) {
 		this->player = other->player;
 		
 		std::memcpy(this->board.data(), other->board.data(), this->board.size() * sizeof(int));
+	}
+
+	int get_bsize() {
+		return bsize;
 	}
 };
 

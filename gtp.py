@@ -1,5 +1,4 @@
 import subprocess
-import sys
 
 def gtp_cmd(process, cmd):
     process.stdin.write(f"{cmd}\n".encode('utf-8'))
@@ -9,7 +8,7 @@ def gtp_cmd(process, cmd):
     while True:
         # Read the engine standard output
         line = process.stdout.readline().decode('utf-8').strip()
-        if line == "": # GTP responses end with a double newline
+        if line == "": 
             break
         response = line
     return response.replace("= ", "").strip()
@@ -17,6 +16,8 @@ def gtp_cmd(process, cmd):
 def run_match(engine1_cmd, engine2_cmd, games=1):
     wins_e1 = 0
     wins_e2 = 0
+
+    boardsize = 13
     
     print(f"Starting {games}-game benchmark...")
     
@@ -32,8 +33,8 @@ def run_match(engine1_cmd, engine2_cmd, games=1):
         white = subprocess.Popen(w_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True)
         
         # Initialize board
-        gtp_cmd(black, "boardsize 13")
-        gtp_cmd(white, "boardsize 13")
+        gtp_cmd(black, f"boardsize {boardsize}")
+        gtp_cmd(white, f"boardsize {boardsize}")
         gtp_cmd(black, "clear_board")
         gtp_cmd(white, "clear_board")
         
@@ -86,4 +87,4 @@ def run_match(engine1_cmd, engine2_cmd, games=1):
 
 if __name__ == "__main__":
     # Point these directly to executables
-    run_match("./build/go_mcts", "./pachi/pachi -t 1", games=1)
+    run_match("./build/go_mcts_parallel", "./pachi/pachi threads=1,policy=ucb1,playout=light,prior=eqex=0,dynkomi=none,pondering=0,pass_all_alive", games=1)

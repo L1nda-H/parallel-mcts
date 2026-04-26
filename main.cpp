@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
 	
 	Mcts* engine;
 	Point p = Point(-1, -1);
-	Board board;
+	Board* board;
 	int step = 0;
 
 	std::string command;
@@ -61,21 +61,24 @@ int main(int argc, char** argv) {
 			if (root) std::cout << "=\n\n";
 		} else if (cmd_type == "boardsize")
 		{
-			if (root) std::cout << "= " << BSIZE << "\n\n";
+			int board_size;
+			ss >> board_size;
+			board = new Board(board_size);
+			if (root) std::cout << "=\n\n";
 		} else if (cmd_type == "clear_board")
 		{
-			board.clear(); 
+			board->clear(); 
             if (root) std::cout << "=\n\n";
 		} else if (cmd_type == "komi")
 		{
-			if (root) std::cout << "= " << KOMI << "\n\n";
+			if (root) std::cout << "=\n\n";
 		} else if (cmd_type == "play")
 		{
 			std::string color, coord;
 			ss >> color >> coord;
 			
 			Point p = Point (coord);
-			board.update_board(p);
+			board->update_board(p);
 			if (root) std::cout << "=\n\n";
 		} else if (cmd_type == "genmove")
 		{
@@ -84,8 +87,8 @@ int main(int argc, char** argv) {
 
             engine = new Mcts(TIME_EACH_MOVE, Point(-1, -1));
             int dummy_games = 0;
-            p = engine->run(&board, rank, dummy_games);
-            board.update_board(p);
+            p = engine->run(board, rank, dummy_games);
+            board->update_board(p);
 
             if (root) {
                 if (p.i == -1) {
@@ -103,7 +106,7 @@ int main(int argc, char** argv) {
 		{
 			if (root) {
 				std::cout << "=\n";
-				board.print_board();
+				board->print_board();
 				std::cout << "\n";
 			}
 		} else {
@@ -111,50 +114,11 @@ int main(int argc, char** argv) {
 		}
 	}
 
-    
-	// if(rank == 0){
-	// 	printf("hybrid start. black first\n");
-	// }
-
-	
-
-	// while (step < NUM_MOVES) {
-	// 	black = new Mcts(TIME_EACH_MOVE, p);
-	// 	p = black->run(&board, rank, num_games);
-	// 	step++;
-	// 	if(rank == 0){
-	// 		printf("black : (%d,%d)\n", p.i, p.j);
-	// 	}
-		
-	// 	board.update_board(p);
-
-	// 	if(rank == 0){
-	// 		board.print_board();
-	// 	}
-
-	// 	white = new Mcts(TIME_EACH_MOVE, p);
-	// 	p = white->run(&board, rank, num_games);
-	// 	step++;
-		
-	// 	if(rank == 0){
-	// 		printf("white : (%d,%d)\n", p.i, p.j);
-	// 	}
-
-	// 	board.update_board(p);
-
-	// 	if(rank == 0){
-	// 		board.print_board();
-	// 	}
-
-	// 	delete white;
-	// 	delete black;
-	// }
-
 	auto end_time = std::chrono::steady_clock::now();
 	std::chrono::duration<double> diff = end_time - start_time;
 	double seconds = diff.count();
 
-	double fin_score = board.aga_score();
+	double fin_score = board->aga_score();
 
 	if(rank == 0){
 		printf("score:%.2f\n", fin_score);
