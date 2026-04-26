@@ -8,7 +8,6 @@
 #include <iostream>
 #include <sstream>
 
-#define NUM_MOVES 20
 #define TIME_EACH_MOVE 10*1000 // ms
 
 int main(int argc, char** argv) {
@@ -77,7 +76,7 @@ int main(int argc, char** argv) {
 			std::string color, coord;
 			ss >> color >> coord;
 			
-			Point p = Point (coord);
+			Point p = Point (coord, board->get_bsize());
 			board->update_board(p);
 			if (root) std::cout << "=\n\n";
 		} else if (cmd_type == "genmove")
@@ -94,7 +93,7 @@ int main(int argc, char** argv) {
                 if (p.i == -1) {
                     std::cout << "= pass\n\n";
                 } else {
-                    std::string gtp_coord = Point::pt_to_gtp(p);
+                    std::string gtp_coord = Point::pt_to_gtp(p, board->get_bsize());
 					std::cout << "= " << gtp_coord << "\n\n";
                 }
             }

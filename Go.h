@@ -8,6 +8,7 @@
 #include <vector>
 #include <string.h>
 #include <cstring>
+#include <stdexcept>
 
 #define KOMI 7.5 
 
@@ -24,20 +25,16 @@ private:
 	int bsize_idx;
 
 public:
-	Board () {
-		bsize = 0;
-	}
-	
 	Board(int board_size) {
 		bsize = board_size;
 		bsize_idx = board_size + 2;
 		board.resize(bsize_idx * bsize_idx);
 		//set the border
-		for (int i = 0; i < bsize + 2; i++) {
-			board[i * (bsize + 2)] = 3;
-			board[i * (bsize + 2) + bsize + 1] = 3;
+		for (int i = 0; i < bsize_idx; i++) {
+			board[i * (bsize_idx)] = 3;
+			board[i * (bsize_idx) + bsize + 1] = 3;
 			board[i] = 3;
-			board[(bsize + 2) * (bsize + 1) + i] = 3;
+			board[(bsize_idx) * (bsize + 1) + i] = 3;
 		}
 
 		player = BLACK; // black play first
@@ -48,9 +45,9 @@ public:
 		bsize = b.bsize;
 		bsize_idx = b.bsize_idx;
 		board.resize(bsize_idx * bsize_idx);
-		for (int i = 0; i < bsize + 2; i++) {
-			for (int j = 0; j < bsize + 2; j++) {
-				board[i * (bsize + 2) + j] = b.getBoard(i, j);
+		for (int i = 0; i < bsize_idx; i++) {
+			for (int j = 0; j < bsize_idx; j++) {
+				board[i * (bsize_idx) + j] = b.getBoard(i, j);
 			}
 		}
 
@@ -61,11 +58,11 @@ public:
 		std::fill(board.begin(), board.end(), 0);
 
 		//set the border
-		for (int i = 0; i < bsize + 2; i++) {
-			board[i * (bsize + 2)] = 3;
-			board[i * (bsize + 2) + bsize + 1] = 3;
+		for (int i = 0; i < bsize_idx; i++) {
+			board[i * (bsize_idx)] = 3;
+			board[i * (bsize_idx) + bsize + 1] = 3;
 			board[i] = 3;
-			board[(bsize + 2) * (bsize + 1) + i] = 3;
+			board[(bsize_idx) * (bsize + 1) + i] = 3;
 		}
 
 		player = BLACK; // black play first
@@ -86,11 +83,15 @@ public:
 	}
 
 	int getBoard(int i, int j) const {
-		return board[i * (bsize + 2) + j];
+		return board[i * (bsize_idx) + j];
 	}
 
 	void setBoard(int i, int j, COLOR c) {
-		board[i * (bsize + 2) + j] = c;
+		// 
+		// if (board[i * (bsize_idx) + j] != EMPTY) {
+		// 	throw std::runtime_error("Invalid move");
+		// }
+		board[i * (bsize_idx) + j] = c;
 	}
 
 	void copy_board(const Board* other) {

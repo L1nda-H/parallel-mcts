@@ -1,6 +1,7 @@
 *.o
 *.txt
 *.out
+*.log
 .vscode/
 pachi/
 pachi/*
