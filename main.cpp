@@ -16,7 +16,7 @@ int main(int argc, char** argv) {
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	
-	Mcts* engine;
+	Mcts* mcts;
 	Point p = Point(-1, -1);
 	Board* board;
 	int step = 0;
@@ -25,8 +25,7 @@ int main(int argc, char** argv) {
 	bool running = true;
 	bool root = rank == 0;
 	int cmd_len = 0;
-
-	auto start_time = std::chrono::steady_clock::now();
+	double seconds = -1;
 
 	while (running) {
 		if (root) {
@@ -83,21 +82,31 @@ int main(int argc, char** argv) {
 		{
 			std::string color;
             ss >> color;
+            mcts = new Mcts(TIME_EACH_MOVE, Point(-1, -1));
+			num_games = 0;
 
-            engine = new Mcts(TIME_EACH_MOVE, Point(-1, -1));
-            int dummy_games = 0;
-            p = engine->run(board, rank, dummy_games);
+			auto start_time = std::chrono::steady_clock::now();
+            p = mcts->run(board, rank, num_games);
+			auto end_time = std::chrono::steady_clock::now();
+			std::chrono::duration<double> diff = end_time - start_time;
+			seconds = diff.count();
+
             board->update_board(p);
 
             if (root) {
+				std::string gtp_coord;
                 if (p.i == -1) {
-                    std::cout << "= pass\n\n";
+                    gtp_coord = "= pass\n\n";
                 } else {
-                    std::string gtp_coord = Point::pt_to_gtp(p, board->get_bsize());
-					std::cout << "= " << gtp_coord << "\n\n";
+                    gtp_coord = Point::pt_to_gtp(p, board->get_bsize());
                 }
+				double gps = num_games / seconds;
+                char gps_msg[256];
+                snprintf(gps_msg, sizeof(gps_msg), "# %d games for %.2f seconds (%.2f GPS)", num_games, seconds, gps);
+
+                std::cout << "= " << gtp_coord << "\n" << gps_msg << "\n\n";
             }
-            delete engine;
+            delete mcts;
 		} else if (cmd_type == "final_score")
 		{
 			/* code */
@@ -113,10 +122,6 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	auto end_time = std::chrono::steady_clock::now();
-	std::chrono::duration<double> diff = end_time - start_time;
-	double seconds = diff.count();
-
 	double fin_score = board->aga_score();
 
 	if(rank == 0){
@@ -128,10 +133,9 @@ int main(int argc, char** argv) {
 		} else {
 			printf("Draw\n");
 		}
-		
-		printf("%d games for %.2f seconds (%.2f GPS)\n", num_games, seconds, num_games / seconds);
 	}
 
+	fflush(stdout);
 
 	MPI_Finalize();
 	return 0;
