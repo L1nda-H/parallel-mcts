@@ -110,6 +110,7 @@ int main(int argc, char** argv) {
 		} else if (cmd_type == "final_score")
 		{
 			/* code */
+			// double fin_score = board->aga_score();
 		} else if (cmd_type == "showboard")
 		{
 			if (root) {
@@ -121,21 +122,6 @@ int main(int argc, char** argv) {
 			if (root) std::cout << "unknown command";
 		}
 	}
-
-	double fin_score = board->aga_score();
-
-	if(rank == 0){
-		printf("score:%.2f\n", fin_score);
-		if (fin_score < 0) {
-			printf("White wins!\n");
-		} else if (fin_score > 0) {
-			printf("Black wins!\n");
-		} else {
-			printf("Draw\n");
-		}
-	}
-
-	fflush(stdout);
 
 	MPI_Finalize();
 	return 0;

@@ -68,7 +68,7 @@ def run_match(engine1_cmd, engine2_cmd, games=1):
             moves = 0
             
             # Play until both pass, or we hit a 150 move limit (prevents infinite loops)
-            while passes < 2 and moves < 3:
+            while passes < 2 and moves < 150:
                 # --- Black move ---
                 b_raw = gtp_cmd(black, "genmove b")
                 b_parts = b_raw.split('\n')

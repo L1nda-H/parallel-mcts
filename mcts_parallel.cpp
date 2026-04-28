@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <iostream>
 #include <numeric>
+#include <vector>
 
 #include "mcts.h"
 #include "Go.h"
@@ -17,19 +18,17 @@
 #define BILLION 1000000000L
 #define MILLION 1000000.0
 #define VIRTUAL_LOSS 1.0
-#define NUM_THREADS 32
-#define MAX_MOVES 82
 
 int point_to_id(Point p){
 	if(p.i == -1 && p.j == -1){
-		return 82;
+		return -1;
 	}
 
 	return p.i * 9 + p.j;
 }
 
 Point id_to_point(int id){
-	if(id == 82){
+	if(id == -1){
 		return Point(-1, -1);
 	}
 
@@ -37,7 +36,6 @@ Point id_to_point(int id){
 }
 
 Point Mcts::run(Board* curr_board, int rank, int& num_games) {
-	// TODO: need to define rank somehow
 	// sync all MPI processes before starting
 	MPI_Barrier(MPI_COMM_WORLD);
 
@@ -52,7 +50,10 @@ Point Mcts::run(Board* curr_board, int rank, int& num_games) {
 		delete curr_board_copy;
 	}
 
-	double local_sims[MAX_MOVES] = {0.0};
+	// TODO: double check indexing ? kind of confused
+	int num_possible_moves = curr_board->get_bsize() * curr_board->get_bsize() + 1;
+
+	double local_sims[num_possible_moves] = {0.0};
 
 	TreeNode* best = NULL;
 	std::vector<TreeNode*> children = root->get_children();
@@ -62,15 +63,15 @@ Point Mcts::run(Board* curr_board, int rank, int& num_games) {
 		local_sims[id] = c->sims;
 	}
 
-	double global_sims[MAX_MOVES] = {0.0};
+	double global_sims[num_possible_moves] = {0.0};
 
-	MPI_Reduce(local_sims, global_sims, MAX_MOVES, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+	MPI_Reduce(local_sims, global_sims, num_possible_moves, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
-	int best_id = 82;
+	int best_id = -1;
 	
 	if(rank == 0){
 		double maxv = -1.0;
-		for(int i = 0; i < MAX_MOVES; i++){
+		for(int i = 0; i < num_possible_moves; i++){
 			double v = global_sims[i];
 			if(v > maxv){
 				maxv = v;
@@ -82,7 +83,7 @@ Point Mcts::run(Board* curr_board, int rank, int& num_games) {
 	MPI_Bcast(&best_id, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
 	if(rank == 0){
-		num_games += std::accumulate(std::begin(global_sims), std::end(global_sims), 0);
+		num_games += std::accumulate(global_sims, global_sims + num_possible_moves, 0);
 	}
 
 	return id_to_point(best_id);
@@ -208,7 +209,6 @@ void Mcts::run_iteration(TreeNode* root, Board* curr_board, int& num_games) {
 	double wins = 0.0;
 	double sims = 0.0;
     run_simulation(curr_board, &wins, &sims);
-
 
     backprop(node, wins, sims);
 }
