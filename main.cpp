@@ -8,7 +8,7 @@
 #include <iostream>
 #include <sstream>
 
-#define TIME_EACH_MOVE 10*1000 // ms
+#define TIME_EACH_MOVE 1*1000 // ms
 
 int main(int argc, char** argv) {
 	int num_procs, rank;
@@ -77,6 +77,7 @@ int main(int argc, char** argv) {
 			
 			Point p = Point (coord, board->get_bsize());
 			board->update_board(p);
+			// TODO handle resigning and pass moves ?
 			if (root) std::cout << "=\n\n";
 		} else if (cmd_type == "genmove")
 		{
@@ -85,6 +86,7 @@ int main(int argc, char** argv) {
             mcts = new Mcts(TIME_EACH_MOVE, Point(-1, -1));
 			num_games = 0;
 
+			// TODO When there are not many move options left in the game, GPS drops heavily and the simulation also takes longer, possibly bc of lock contention while updating nodes?
 			auto start_time = std::chrono::steady_clock::now();
             p = mcts->run(board, rank, num_games);
 			auto end_time = std::chrono::steady_clock::now();
@@ -96,7 +98,7 @@ int main(int argc, char** argv) {
             if (root) {
 				std::string gtp_coord;
                 if (p.i == -1) {
-                    gtp_coord = "= pass\n\n";
+                    gtp_coord = "=pass\n\n";
                 } else {
                     gtp_coord = Point::pt_to_gtp(p, board->get_bsize());
                 }

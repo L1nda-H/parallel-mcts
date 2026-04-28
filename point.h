@@ -29,9 +29,10 @@ public:
 		i = letter - 'A' + 1;
 
 		try {
+			// pachi rows are indexed from bottom up, so this coordinate has to be reversed
 			j = (bsize + 1) - std::stoi(coord.substr(1));
 		} catch (const std::invalid_argument& e) {
-			i = -1; j = -1; 
+			i = 0; j = 0; 
 		}
 	}
 

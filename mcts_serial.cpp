@@ -7,12 +7,7 @@
 #include "mcts.h"
 #include "Go.h"
 #include "point.h"
-
-#define C 1.4
-#define EPSILON 10e-64
-#define MAX_STEP 100 // redefine to avoid repeat game
-#define BILLION 1000000000L
-#define MILLION 1000000.0
+#include "common.h"
 
 Point Mcts::run(Board* curr_board, int rank, int& num_games) {
 	clock_gettime(CLOCK_REALTIME, &start);

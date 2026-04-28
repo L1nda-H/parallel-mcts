@@ -11,55 +11,49 @@
 #include "point.h"
 #include "omp.h"
 #include "mpi.h"
+#include "common.h"
 
-#define C 1.4
-#define EPSILON 10e-64
-#define MAX_STEP 100 // redefine to avoid repeat game
-#define BILLION 1000000000L
-#define MILLION 1000000.0
-#define VIRTUAL_LOSS 1.0
-
-int point_to_id(Point p){
+int point_to_id(Point p, int bsize){
 	if(p.i == -1 && p.j == -1){
 		return -1;
 	}
 
-	return p.i * 9 + p.j;
+	return (p.i - 1) * bsize + (p.j - 1);
 }
 
-Point id_to_point(int id){
+Point id_to_point(int id, int bsize){
 	if(id == -1){
 		return Point(-1, -1);
 	}
 
-	return Point(id / 9, id % 9);
+	return Point((id / bsize) + 1, (id % bsize) + 1);
 }
 
 Point Mcts::run(Board* curr_board, int rank, int& num_games) {
 	// sync all MPI processes before starting
 	MPI_Barrier(MPI_COMM_WORLD);
+	
+	// TODO: double check indexing ? kind of confused
+	int bsize = curr_board->get_bsize();
 
 	clock_gettime(CLOCK_REALTIME, &start);
 	#pragma omp parallel
 	{
-		Board* curr_board_copy = new Board(curr_board->get_bsize());
+		Board* curr_board_copy = new Board(bsize);
 		while(!checkAbort()) {
 			curr_board_copy->copy_board(curr_board);
 			run_iteration(root, curr_board_copy, num_games);
 		}
 		delete curr_board_copy;
 	}
-
-	// TODO: double check indexing ? kind of confused
-	int num_possible_moves = curr_board->get_bsize() * curr_board->get_bsize() + 1;
+	int num_possible_moves = bsize * bsize;
 
 	double local_sims[num_possible_moves] = {0.0};
 
-	TreeNode* best = NULL;
 	std::vector<TreeNode*> children = root->get_children();
 	for (std::vector<TreeNode*>::iterator it = children.begin(); it != children.end(); it++) {
 		TreeNode* c = *it;
-		int id = point_to_id(c->get_move());
+		int id = point_to_id(c->get_move(), bsize);
 		local_sims[id] = c->sims;
 	}
 
@@ -86,7 +80,7 @@ Point Mcts::run(Board* curr_board, int rank, int& num_games) {
 		num_games += std::accumulate(global_sims, global_sims + num_possible_moves, 0);
 	}
 
-	return id_to_point(best_id);
+	return id_to_point(best_id, bsize);
 }
 
 TreeNode* Mcts::selection(TreeNode* node) {

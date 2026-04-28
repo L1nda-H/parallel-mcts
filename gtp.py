@@ -81,6 +81,7 @@ def run_match(engine1_cmd, engine2_cmd, games=1):
                         log_print(f"    {line}")
                 
                 if b_move.lower() == "pass": passes += 1
+                elif b_move.lower() == "resign": passes = 3
                 else: passes = 0
                 
                 gtp_cmd(white, f"play b {b_move}") # Tell White what Black did
@@ -98,6 +99,7 @@ def run_match(engine1_cmd, engine2_cmd, games=1):
                         log_print(f"    {line}")
                 
                 if w_move.lower() == "pass": passes += 1
+                elif w_move.lower() == "resign": passes = 3
                 else: passes = 0
                 
                 gtp_cmd(black, f"play w {w_move}") # Tell Black what White did
@@ -137,4 +139,4 @@ def run_match(engine1_cmd, engine2_cmd, games=1):
 
 if __name__ == "__main__":
     # Point these directly to executables
-    run_match("./build/go_mcts_parallel", "./pachi/pachi -t 10 -d0 -o pachilog.log threads=1,policy=ucb1,playout=light,prior=eqex=0,dynkomi=none,pondering=0,pass_all_alive", games=1)
+    run_match("./build/go_mcts_parallel", "./pachi/pachi -t 1 -d0 -o pachilog.log threads=1,policy=ucb1,playout=light,prior=eqex=0,dynkomi=none,pondering=0,pass_all_alive", games=1)
