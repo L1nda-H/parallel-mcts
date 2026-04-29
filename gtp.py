@@ -104,6 +104,10 @@ def run_match(engine1_cmd, engine2_cmd, games=1):
                 
                 gtp_cmd(black, f"play w {w_move}") # Tell Black what White did
                 moves += 1
+
+                curr_board = gtp_cmd(white if w_name == "Pachi" else black, "showboard")
+                
+                log_print(curr_board)
         
             # Retrieve and log the final board state
             log_print("\n--- Final Board State ---")

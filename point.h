@@ -26,11 +26,11 @@ public:
 
 		char letter = std::toupper(coord[0]);
 		if (letter >= 'I') letter--;
-		i = letter - 'A' + 1;
+		j = letter - 'A' + 1;
 
 		try {
 			// pachi rows are indexed from bottom up, so this coordinate has to be reversed
-			j = (bsize + 1) - std::stoi(coord.substr(1));
+			i = (bsize + 1) - std::stoi(coord.substr(1));
 		} catch (const std::invalid_argument& e) {
 			i = 0; j = 0; 
 		}
@@ -43,11 +43,11 @@ public:
 
 		std::string coord = "";
 		
-		char col = (p.i - 1) + 'A';
+		char col = (p.j - 1) + 'A';
 		if (col >= 'I') col++;
 		
 		coord += col;
-		coord += std::to_string((bsize + 1) - p.j);
+		coord += std::to_string((bsize + 1) - p.i);
 		
 		return coord;
 	}
