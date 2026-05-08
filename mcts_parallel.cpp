@@ -33,7 +33,6 @@ Point Mcts::run(Board* curr_board, int rank, int& num_games) {
 	// sync all MPI processes before starting
 	MPI_Barrier(MPI_COMM_WORLD);
 	
-	// TODO: double check indexing ? kind of confused
 	int bsize = curr_board->get_bsize();
 
 	clock_gettime(CLOCK_REALTIME, &start);

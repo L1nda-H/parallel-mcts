@@ -15,6 +15,7 @@ int main(int argc, char** argv) {
 	int num_games = 0;
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
 	
 	Mcts* mcts;
 	Point p = Point(-1, -1);
@@ -102,9 +103,8 @@ int main(int argc, char** argv) {
                 } else {
                     gtp_coord = Point::pt_to_gtp(p, board->get_bsize());
                 }
-				double gps = num_games / seconds;
                 char gps_msg[256];
-                snprintf(gps_msg, sizeof(gps_msg), "# %d games for %.2f seconds (%.2f GPS)", num_games, seconds, gps);
+                snprintf(gps_msg, sizeof(gps_msg), "# %d, %.2f", num_games, seconds);
 
                 std::cout << "= " << gtp_coord << "\n" << gps_msg << "\n\n";
             }

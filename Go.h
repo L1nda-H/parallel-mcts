@@ -1,4 +1,3 @@
-
 #ifndef GO_H
 #define GO_H
 
@@ -10,7 +9,8 @@
 #include <cstring>
 #include <stdexcept>
 
-#define KOMI 7.5 
+// TODO pachi has a different concept of komi, so we might just remove this
+#define KOMI 0
 
 enum COLOR {WHITE = 1, BLACK = 2, EMPTY = 0, OUT = 3};
 

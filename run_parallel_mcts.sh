@@ -16,6 +16,6 @@ export OMP_PROC_BIND=spread
 #run the application:
 echo "Starting MCTS Parallel..."
 
-srun -n 2 ./go_mcts_parallel > parallel_game_output.txt
+srun -n 2 ./build/go_mcts_parallel > parallel_game_output.txt
 
 echo "Game finished!"

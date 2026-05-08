@@ -1,40 +1,53 @@
 #include <stdio.h>
 #include <iostream>
 #include "Go.h"
+#include "tdeque.h"
+#include "common.h"
 
 bool Board::canEat(int i, int j, COLOR color) {
     setBoard(i, j, color);
     bool result = false;
     COLOR op_color = static_cast<COLOR>(color ^ 3);
-    std::vector<bool> visited(bsize_idx * bsize_idx, false);
-    std::deque<Point> q;    
+    thread_local TDeque q; 
+    thread_local bool visited[MAX_POINTS];
+
+    q.clear(); 
+    std::memset(visited, 0, sizeof(visited));
 
     for (int d = 0; d < 4; d++) {
         int ni = i + dir[d][0];
         int nj = j + dir[d][1];
+        
         if (getBoard(ni, nj) == op_color && !visited[ni * bsize_idx + nj]) {
+            q.clear();
             q.push_back(Point(ni,nj));
+            visited[ni * bsize_idx + nj] = true;
+            
             int liberty = 0;
             while (!q.empty()) {
                 Point f = q.front();
                 q.pop_front();
-                visited[f.i * bsize_idx + f.j] = true;
                 for (int dd = 0; dd < 4; dd++) {
                     int nni = f.i + dir[dd][0];
                     int nnj = f.j + dir[dd][1];
                     if (visited[nni * bsize_idx + nnj]) continue;
                     if (getBoard(nni, nnj) == op_color) {
+                        visited[nni * bsize_idx + nnj] = true;
                         q.push_back(Point(nni, nnj));
                     } else if (getBoard(nni, nnj) == EMPTY) {
                         liberty++;
+                        break;
                     }
+                }
+                if (liberty > 0) {
+                    break;
                 }
             }
             if (liberty == 0) {
                 result = true;
+                break;
             }
         }
-        if (result) break;
     }
     
     setBoard(i, j, EMPTY);
@@ -67,7 +80,7 @@ bool Board::isSuicide(int i, int j, COLOR color) {
 std::vector<Point> Board::get_next_legal_moves() {
     std::vector<Point> allowed_moves;
     for (int r = 1; r <= bsize; r++) {
-        for (int c = 1; c < bsize; c++) {
+        for (int c = 1; c <= bsize; c++) {
             if (getBoard(r,c) == EMPTY) {
                 if (isSuicide(r,c,player) && !canEat(r,c,player)) continue;
                 allowed_moves.push_back(Point(r,c));
@@ -149,24 +162,24 @@ void Board::print_board() {
     std::cout << "\n";
 }
 
+// int Board::quick_score() {
+//     int black = 0;
+// 	int white = 0;
+
+// 	for (int i = 1; i < bsize + 1; i++) {
+// 		for (int j = 1; j < bsize + 1; j++) {
+// 			if (getBoard(i, j) == WHITE) {
+// 				white++;
+// 			} else if (getBoard(i, j) == BLACK) {
+// 				black++;
+// 			}
+// 		}
+// 	}
+
+// 	return black - white;
+// }
+
 int Board::quick_score() {
-    int black = 0;
-	int white = 0;
-
-	for (int i = 1; i < bsize + 1; i++) {
-		for (int j = 1; j < bsize + 1; j++) {
-			if (getBoard(i, j) == WHITE) {
-				white++;
-			} else if (getBoard(i, j) == BLACK) {
-				black++;
-			}
-		}
-	}
-
-	return black - white;
-}
-
-double Board::aga_score() {
     int black_score = 0;
     int white_score = 0;
     
