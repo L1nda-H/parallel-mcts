@@ -62,7 +62,7 @@ bool Board::isSuicide(int i, int j, COLOR color) {
     std::memset(visited, false, sizeof(visited));
 
     q.push_back(Point(i, j));
-    visited[i * bsize_idx + j];
+    visited[i * bsize_idx + j] = true;
     while (!q.empty()) 
     {
         Point f = q.front();
@@ -158,11 +158,11 @@ void Board::print_board() {
     for (int i = 1; i < bsize + 1 ; i++) {
         for (int j = 1; j < bsize + 1; j++) {
             if (getBoard(i, j) == WHITE) {
-                std::cout << "W";
+                std::cout << "O ";
             } else if (getBoard(i, j) == BLACK) {
-                std::cout << "B";
+                std::cout << "X ";
             } else {
-                std::cout << ".";
+                std::cout << ". ";
             }
         }
         std::cout << "\n";
