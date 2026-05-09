@@ -75,8 +75,6 @@ public:
 	int update_board(Point pos);
 
 	int quick_score();
-
-	double aga_score();
 	
 	COLOR ToPlay() const {
 		return player;
