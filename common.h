@@ -6,3 +6,6 @@
 #define VIRTUAL_LOSS 1.0
 
 #define MAX_POINTS 450 
+#define TRANSPOSITION_TABLE_SIZE 32000000
+// #define N_SIMS_SHARE 500 // Min num of simulations that has passed a tree node before it must be shared
+// #define ALPHA 0.5

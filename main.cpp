@@ -3,6 +3,7 @@
 #include "Go.h"
 #include "mcts.h"
 #include "point.h"
+#include "zobrist.h"
 #include "mpi.h"
 #include <string>
 #include <iostream>
@@ -16,6 +17,9 @@ int main(int argc, char** argv) {
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
+
+	ZobristHash z;
+	TTable ttable();
 	
 	Mcts* mcts;
 	Point p = Point(-1, -1);
@@ -62,7 +66,8 @@ int main(int argc, char** argv) {
 		{
 			int board_size;
 			ss >> board_size;
-			board = new Board(board_size);
+			z.buildTable(board_size);
+			board = new Board(board_size, z);
 			if (root) std::cout << "=\n\n";
 		} else if (cmd_type == "clear_board")
 		{

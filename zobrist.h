@@ -1,14 +1,14 @@
-#ifndef ZOBRIST_H
-#define ZOBRIST_H
-
 #include <random>
 #include <vector>
 #include <atomic>
 
 #include "Go.h"
+#include "common.h"
 
 struct ZobristHash {
     std::vector<uint64_t> table;
+
+    ZobristHash() {};
 
     void buildTable (int bsize_idx) {
         std::random_device rd;
@@ -33,6 +33,9 @@ struct ZobristHash {
     }
 
     uint64_t updateHash(uint64_t current_hash, int pos, COLOR color) {
+        if (color == COLOR::EMPTY || color == COLOR::OUT) {
+            return current_hash;
+        }
         return current_hash ^= table[pos * 2 + color - 1];
     }
 };
@@ -53,9 +56,14 @@ private:
     std::vector<TNode> table;
     uint64_t table_size;
 public:
-    TTable(uint64_t size) {
-        table.resize(size);
-        table_size = size;
+    TTable() {
+        table.resize(TRANSPOSITION_TABLE_SIZE);
+        table_size = TRANSPOSITION_TABLE_SIZE;
+    }
+
+    TNode* getNode(uint64_t board_hash) {
+        uint64_t index = board_hash % table_size;
+        return &table[index];
     }
 
     void updateNode(uint64_t board_hash, double wins_to_add, double sims_to_add, uint64_t current_time) {
@@ -98,7 +106,7 @@ public:
 
     ~Mcts_zobrist() {}
 
-    Point run(Board* curr_board, int rank, int& num_games);
+    Point run(Board* curr_board, int rank, uint64_t curr_time, int& num_games, ZobristHash z);
 	
 	void run_iteration(Board* curr_board, uint64_t curr_time, int& num_games);
 
@@ -108,5 +116,3 @@ public:
 
 	bool checkAbort();
 };
-
-#endif

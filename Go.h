@@ -3,6 +3,7 @@
 
 #include "point.h"
 #include "string.h"
+#include "zobrist.h"
 #include <deque>
 #include <vector>
 #include <string.h>
@@ -20,6 +21,8 @@ private:
 	std::vector<int> board; 
 	bool canEat(int i, int j, COLOR color);
 	bool isSuicide(int i, int j, COLOR color);
+	ZobristHash hash_table;
+	uint64_t state_hash;
 	COLOR player;	// current player
 	int bsize;
 	int bsize_idx;
@@ -40,6 +43,23 @@ public:
 		player = BLACK; // black play first
 	}
 
+	Board(int board_size, ZobristHash ht) {
+		bsize = board_size;
+		bsize_idx = board_size + 2;
+		board.resize(bsize_idx * bsize_idx);
+		//set the border
+		for (int i = 0; i < bsize_idx; i++) {
+			board[i * (bsize_idx)] = 3;
+			board[i * (bsize_idx) + bsize + 1] = 3;
+			board[i] = 3;
+			board[(bsize_idx) * (bsize + 1) + i] = 3;
+		}
+		hash_table = ht;
+		state_hash = ht.generateInitHash(board);
+
+		player = BLACK; // black play first
+	}
+
 	//copy constructor
 	Board(const Board& b) {
 		bsize = b.bsize;
@@ -50,6 +70,8 @@ public:
 				board[i * (bsize_idx) + j] = b.getBoard(i, j);
 			}
 		}
+		hash_table = b.hash_table;
+		state_hash = b.state_hash;
 
 		player = b.ToPlay();
 	}
@@ -86,6 +108,7 @@ public:
 
 	void setBoard(int i, int j, COLOR c) {
 		board[i * (bsize_idx) + j] = c;
+		state_hash = hash_table.updateHash(state_hash, i * (bsize_idx) + j, c);
 	}
 
 	void copy_board(const Board* other) {
@@ -96,6 +119,10 @@ public:
 
 	int get_bsize() {
 		return bsize;
+	}
+
+	uint64_t get_hash() {
+		return state_hash;
 	}
 };
 
