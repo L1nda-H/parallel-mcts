@@ -1,6 +1,6 @@
 import subprocess
 
-MOVE_LIMIT = 10
+MOVE_LIMIT = 150
 
 def gtp_cmd(process, cmd):
     process.stdin.write(f"{cmd}\n".encode('utf-8'))
@@ -83,14 +83,14 @@ def run_match(engine1_cmd, engine2_cmd, games=1):
                     for line in b_parts[1:]:
                         if line.startswith("#"):
                             log_print(f"    {line}")
-                            gps_record[moves] += (f"{line}")
+                            gps_record[moves] += (f"{line} ")
                     
                     if b_move.lower() == "pass": passes += 1
                     elif b_move.lower() == "resign": passes = 3
                     else: passes = 0
                     
                     gtp_cmd(white, f"play b {b_move}") # Tell White what Black did
-                    if passes == 2: break
+                    if passes >= 2: break
                     
                     # --- White move ---
                     w_raw = gtp_cmd(white, "genmove w")
@@ -102,7 +102,7 @@ def run_match(engine1_cmd, engine2_cmd, games=1):
                     for line in w_parts[1:]:
                         if line.startswith("#"):
                             log_print(f"    {line}")
-                            gps_record[moves] += (f"{line}")
+                            gps_record[moves] += (f"{line} ")
                     
                     if w_move.lower() == "pass": passes += 1
                     elif w_move.lower() == "resign": passes = 3

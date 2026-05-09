@@ -12,7 +12,7 @@ bool Board::canEat(int i, int j, COLOR color) {
     thread_local bool visited[MAX_POINTS];
 
     q.clear(); 
-    std::memset(visited, 0, sizeof(visited));
+    std::memset(visited, false, sizeof(visited));
 
     for (int d = 0; d < 4; d++) {
         int ni = i + dir[d][0];
@@ -55,20 +55,24 @@ bool Board::canEat(int i, int j, COLOR color) {
 }
 
 bool Board::isSuicide(int i, int j, COLOR color) {
-    std::deque<Point> q;
-    std::vector<bool> visited(bsize_idx * bsize_idx, false);
+    thread_local TDeque q;
+    thread_local bool visited[MAX_POINTS];
+
+    q.clear();
+    std::memset(visited, false, sizeof(visited));
 
     q.push_back(Point(i, j));
+    visited[i * bsize_idx + j];
     while (!q.empty()) 
     {
         Point f = q.front();
         q.pop_front();
-        visited[f.i * bsize_idx + f.j] = true;
         for (int d = 0; d < 4; d++) {
             int ni = f.i + dir[d][0];
             int nj = f.j + dir[d][1];
             if (visited[ni * bsize_idx + nj]) continue;
-            if (getBoard(ni, nj) == color) {
+            if (getBoard(ni, nj) == color) {  
+                visited[ni * bsize_idx + nj] = true;
                 q.push_back(Point(ni, nj));
             } else if (getBoard(ni, nj) == EMPTY) return false;
         }
@@ -93,9 +97,16 @@ std::vector<Point> Board::get_next_legal_moves() {
 int Board::update_board(Point pos) {
     setBoard(pos.i, pos.j, player);
     COLOR op_color = static_cast<COLOR>(player ^ 3);
-    std::vector<bool> visited(bsize_idx * bsize_idx, false);
-    std::deque<Point> q1;
-    std::deque<Point> q2;    
+
+    thread_local bool visited[MAX_POINTS];
+
+    std::memset(visited, false, sizeof(visited));
+
+    thread_local TDeque q1;
+    thread_local TDeque q2;
+    
+    q1.clear();
+    q2.clear();
 
     int total = 0;
     for(int d = 0; d < 4; d++) {
@@ -105,17 +116,18 @@ int Board::update_board(Point pos) {
         if (getBoard(ni, nj) == op_color && !visited[ni * bsize_idx + nj]) {
             int liberty = 0;
             q1.push_back(Point(ni, nj));
+            visited[ni * bsize_idx + nj] = true;
             q2.push_back(Point(q1.front()));
             while(!q1.empty()) {
                 Point f = q1.front();
                 q1.pop_front();
-                visited[f.i * bsize_idx + f.j] = true;
                 for (int dd = 0; dd < 4; dd++) {
                     ni = f.i + dir[dd][0];
                     nj = f.j + dir[dd][1];
                     if (visited[ni * bsize_idx + nj])continue;
 					if (getBoard(ni, nj) == op_color) {
 						Point tp = Point(ni, nj);
+                        visited[ni * bsize_idx + nj] = true;
 						q1.push_back(tp);
 						q2.push_back(tp);
 					} else if (getBoard(ni, nj) == EMPTY) {
@@ -125,8 +137,8 @@ int Board::update_board(Point pos) {
             }
             if (liberty == 0) {
 				total += q2.size();
-				for (std::deque<Point>::iterator it = q2.begin(); it != q2.end(); it++) {
-					Point p = *it;
+				for (int it = q2.head; it != q2.tail; it++) {
+					Point p = q2.get(it);
 					setBoard(p.i, p.j, EMPTY);
 				}
 			}
@@ -162,28 +174,12 @@ void Board::print_board() {
     std::cout << "\n";
 }
 
-// int Board::quick_score() {
-//     int black = 0;
-// 	int white = 0;
-
-// 	for (int i = 1; i < bsize + 1; i++) {
-// 		for (int j = 1; j < bsize + 1; j++) {
-// 			if (getBoard(i, j) == WHITE) {
-// 				white++;
-// 			} else if (getBoard(i, j) == BLACK) {
-// 				black++;
-// 			}
-// 		}
-// 	}
-
-// 	return black - white;
-// }
-
 int Board::quick_score() {
     int black_score = 0;
     int white_score = 0;
     
-    std::vector<char> visited(bsize_idx * bsize_idx, 0);
+    thread_local bool visited[MAX_POINTS];
+    std::memset(visited, false, sizeof(bool));
 
     for (int i = 1; i <= bsize; i++) {
         for (int j = 1; j <= bsize; j++) {

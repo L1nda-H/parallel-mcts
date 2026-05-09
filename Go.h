@@ -87,10 +87,6 @@ public:
 	}
 
 	void setBoard(int i, int j, COLOR c) {
-		// 
-		// if (board[i * (bsize_idx) + j] != EMPTY) {
-		// 	throw std::runtime_error("Invalid move");
-		// }
 		board[i * (bsize_idx) + j] = c;
 	}
 

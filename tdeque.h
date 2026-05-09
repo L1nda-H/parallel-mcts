@@ -31,4 +31,8 @@ struct TDeque {
     inline int size() { 
         return tail - head; 
     }
+
+    inline Point get(int i) {
+        return data[i];
+    }
 };
