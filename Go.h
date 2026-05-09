@@ -20,6 +20,7 @@ private:
 	std::vector<int> board; 
 	bool canEat(int i, int j, COLOR color);
 	bool isSuicide(int i, int j, COLOR color);
+	int countLiberties(int i, int j, COLOR color);
 	COLOR player;	// current player
 	int bsize;
 	int bsize_idx;

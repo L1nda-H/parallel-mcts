@@ -99,7 +99,7 @@ int main(int argc, char** argv) {
             if (root) {
 				std::string gtp_coord;
                 if (p.i == -1) {
-                    gtp_coord = "=pass\n\n";
+                    gtp_coord = "pass";
                 } else {
                     gtp_coord = Point::pt_to_gtp(p, board->get_bsize());
                 }

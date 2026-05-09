@@ -81,12 +81,51 @@ bool Board::isSuicide(int i, int j, COLOR color) {
     
 }
 
+int Board::countLiberties(int i, int j, COLOR color) {
+    thread_local TDeque q;
+    thread_local bool visited[MAX_POINTS];
+    thread_local bool visited_liberty[MAX_POINTS];
+
+    q.clear();
+    std::memset(visited, false, sizeof(visited));
+    std::memset(visited_liberty, false, sizeof(visited_liberty));
+
+    q.push_back(Point(i, j));
+    visited[i * bsize_idx + j] = true;
+
+    int liberties = 0;
+
+    while (!q.empty() && liberties < 3) 
+    {
+        Point f = q.front();
+        q.pop_front();
+        for (int d = 0; d < 4; d++) {
+            int ni = f.i + dir[d][0];
+            int nj = f.j + dir[d][1];
+            int idx = ni * bsize_idx + nj;
+
+            if (visited[idx]) continue;
+
+            if (getBoard(ni, nj) == color) {  
+                visited[ni * bsize_idx + nj] = true;
+                q.push_back(Point(ni, nj));
+            } else if (getBoard(ni, nj) == EMPTY) {
+                if (!visited_liberty[idx]) {
+                    visited_liberty[idx] = true;
+                    liberties++;
+                }
+            }
+        }
+    }
+    return liberties;
+}
+
 std::vector<Point> Board::get_next_legal_moves() {
     std::vector<Point> allowed_moves;
     for (int r = 1; r <= bsize; r++) {
         for (int c = 1; c <= bsize; c++) {
             if (getBoard(r,c) == EMPTY) {
-                if (isSuicide(r,c,player) && !canEat(r,c,player)) continue;
+                if (countLiberties(r,c,player) < 2 && !canEat(r,c,player)) continue;
                 allowed_moves.push_back(Point(r,c));
             }
         }
