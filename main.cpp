@@ -94,7 +94,9 @@ int main(int argc, char** argv) {
 			std::chrono::duration<double> diff = end_time - start_time;
 			seconds = diff.count();
 
-            board->update_board(p);
+			if(p.i != -1){
+            	board->update_board(p);
+			}
 
             if (root) {
 				std::string gtp_coord;

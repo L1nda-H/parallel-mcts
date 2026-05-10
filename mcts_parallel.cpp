@@ -53,7 +53,9 @@ Point Mcts::run(Board* curr_board, int rank, int& num_games) {
 	for (std::vector<TreeNode*>::iterator it = children.begin(); it != children.end(); it++) {
 		TreeNode* c = *it;
 		int id = point_to_id(c->get_move(), bsize);
-		local_sims[id] = c->sims;
+		if(id > -1) {
+			local_sims[id] = c->sims;
+		}
 	}
 
 	double global_sims[num_possible_moves] = {0.0};
@@ -63,7 +65,7 @@ Point Mcts::run(Board* curr_board, int rank, int& num_games) {
 	int best_id = -1;
 	
 	if(rank == 0){
-		double maxv = -1.0;
+		double maxv = 0;
 		for(int i = 0; i < num_possible_moves; i++){
 			double v = global_sims[i];
 			if(v > maxv){
@@ -118,7 +120,7 @@ void Mcts::expand(TreeNode* node, Board* board) {
 
 void Mcts::backprop(TreeNode* node, int win_increase, int sim_increase) {
 	bool lv = false;
-	while (node != NULL) {
+	while (node != NULL && node->parent != NULL) {
 		#pragma omp atomic
 		node->sims += (sim_increase - VIRTUAL_LOSS);
 
@@ -129,6 +131,10 @@ void Mcts::backprop(TreeNode* node, int win_increase, int sim_increase) {
 
 		node = node->parent;
 		lv = !lv;
+	}
+
+	if (node->parent != NULL) {
+		node = node->parent;
 	}
 }
 
