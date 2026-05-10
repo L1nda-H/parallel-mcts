@@ -92,7 +92,6 @@ public:
 class Mcts_zobrist {
 private:
     TTable* table;
-    ZobristHash* hash;
     struct timespec start, end;
     double maxTime;
     bool abort;
@@ -100,7 +99,6 @@ private:
 public:
     Mcts_zobrist(double time, TTable* global_table, ZobristHash* z) {
         table = global_table;
-        hash = z;
         maxTime = time;
     }
 
@@ -109,9 +107,7 @@ public:
     Point run(Board* curr_board, int rank, uint64_t curr_time, int& num_games, ZobristHash z);
 	
 	void run_iteration(Board* curr_board, uint64_t curr_time, int& num_games);
-
-	uint64_t selection(Board* board, uint64_t curr_time);
-	void expand(Board* board, uint64_t curr_time);
+    
 	void backprop(const std::vector<uint64_t>& search_path, double wins, double sims, uint64_t current_time);
 
 	bool checkAbort();

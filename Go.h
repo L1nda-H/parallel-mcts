@@ -124,6 +124,10 @@ public:
 	uint64_t get_hash() {
 		return state_hash;
 	}
+
+	ZobristHash get_htable() {
+		return hash_table;
+	}
 };
 
 #endif
