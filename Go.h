@@ -108,8 +108,10 @@ public:
 	}
 
 	void setBoard(int i, int j, COLOR c) {
-		board[i * (bsize_idx) + j] = c;
-		state_hash = hash_table.updateHash(state_hash, i * (bsize_idx) + j, c);
+		if(i != -1 && j != -1) {
+			board[i * (bsize_idx) + j] = c;
+			state_hash = hash_table.updateHash(state_hash, i * (bsize_idx) + j, c);
+		}
 	}
 
 	void copy_board(const Board* other) {
