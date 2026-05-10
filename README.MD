@@ -1,4 +1,4 @@
-## To Set up GNU Go
+## To Set up Pachi
 
 run the following to clone Pachi and compile the pure, classic heuristic MCTS mode.
 ```

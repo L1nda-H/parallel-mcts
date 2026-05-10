@@ -13,16 +13,17 @@
 #include "mpi.h"
 #include "common.h"
 
-Point Mcts_zobrist::run(Board* curr_board, int rank, uint64_t curr_time, int& num_games, ZobristHash z) {
+Point Mcts_zobrist::run(Board* curr_board, int rank, int& num_games) {
 	int bsize = curr_board->get_bsize();
 
     clock_gettime(CLOCK_REALTIME, &start);
     std::vector<uint64_t> search_path;
 
+    ZobristHash z = curr_board->get_htable();
     Board* curr_board_copy = new Board(bsize, z);
     while(!checkAbort()) {
         curr_board_copy->copy_board(curr_board);
-        run_iteration(curr_board_copy, curr_time, num_games);
+        run_iteration(curr_board_copy, num_games);
     }
     delete curr_board_copy;
 
@@ -69,14 +70,14 @@ void simulate(Board* b, double* wins, double* sims) {
 	*sims += 1.0;
 }
 
-void Mcts_zobrist::backprop(const std::vector<uint64_t>& search_path, double wins, double sims, uint64_t curr_time) {
+void Mcts_zobrist::backprop(const std::vector<uint64_t>& search_path, double wins, double sims) {
     // backprop
     for (uint64_t hash : search_path) {
-        table->updateNode(hash, wins, sims, curr_time);
+        table->updateNode(hash, wins, sims, move);
     }
 }
 
-void Mcts_zobrist::run_iteration(Board* curr_board, uint64_t curr_time, int& num_games) {
+void Mcts_zobrist::run_iteration(Board* curr_board, int& num_games) {
     std::vector<uint64_t> search_path;
 
     uint64_t current_hash = curr_board->get_hash();
@@ -125,7 +126,7 @@ void Mcts_zobrist::run_iteration(Board* curr_board, uint64_t curr_time, int& num
         double sims = 0.0;
         simulate(curr_board, &wins, &sims);
 
-        backprop(search_path, wins, sims, curr_time);
+        backprop(search_path, wins, sims);
     }
 }
 

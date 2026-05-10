@@ -4,6 +4,8 @@
 #include "point.h"
 #include "string.h"
 #include "zobrist.h"
+#include "common.h"
+
 #include <deque>
 #include <vector>
 #include <string.h>
@@ -12,8 +14,6 @@
 
 // TODO pachi has a different concept of komi, so we might just remove this
 #define KOMI 0
-
-enum COLOR {WHITE = 1, BLACK = 2, EMPTY = 0, OUT = 3};
 
 class Board {
 private:
@@ -41,7 +41,7 @@ public:
 			board[(bsize_idx) * (bsize + 1) + i] = 3;
 		}
 
-		player = BLACK; // black play first
+		player = COLOR::BLACK; // black play first
 	}
 
 	Board(int board_size, ZobristHash ht) {
@@ -58,7 +58,7 @@ public:
 		hash_table = ht;
 		state_hash = ht.generateInitHash(board);
 
-		player = BLACK; // black play first
+		player = COLOR::BLACK; // black play first
 	}
 
 	//copy constructor
@@ -88,7 +88,7 @@ public:
 			board[(bsize_idx) * (bsize + 1) + i] = 3;
 		}
 
-		player = BLACK; // black play first
+		player = COLOR::BLACK; // black play first
 	}
 
 	void print_board();

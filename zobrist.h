@@ -1,9 +1,14 @@
+#ifndef MCTS_ZOBRIST
+#define MCTS_ZOBRIST
+
 #include <random>
 #include <vector>
 #include <atomic>
 
-#include "Go.h"
 #include "common.h"
+#include "mcts.h"
+
+class Board;
 
 struct ZobristHash {
     std::vector<uint64_t> table;
@@ -25,7 +30,7 @@ struct ZobristHash {
     uint64_t generateInitHash(std::vector<int>& b) {
         uint64_t hash = 0;
         for(int i = 1; i < b.size() - 1; i++) {
-            if (b[i] != COLOR::EMPTY && b[i] != COLOR::OUT) {
+            if (b[i] != EMPTY && b[i] != OUT) {
                 hash = hash ^= table[b[i] - 1 + i * 2];
             }
         }
@@ -33,7 +38,7 @@ struct ZobristHash {
     }
 
     uint64_t updateHash(uint64_t current_hash, int pos, COLOR color) {
-        if (color == COLOR::EMPTY || color == COLOR::OUT) {
+        if (color == EMPTY || color == OUT) {
             return current_hash;
         }
         return current_hash ^= table[pos * 2 + color - 1];
@@ -53,12 +58,16 @@ struct TNode {
 
 class TTable {
 private:
-    std::vector<TNode> table;
+    TNode* table;
     uint64_t table_size;
 public:
     TTable() {
-        table.resize(TRANSPOSITION_TABLE_SIZE);
         table_size = TRANSPOSITION_TABLE_SIZE;
+        table = new TNode[TRANSPOSITION_TABLE_SIZE];
+    }
+
+    ~TTable() {
+        delete[] table;
     }
 
     TNode* getNode(uint64_t board_hash) {
@@ -89,26 +98,30 @@ public:
     }
 };
 
-class Mcts_zobrist {
+class Mcts_zobrist : public MctsEngine{
 private:
     TTable* table;
     struct timespec start, end;
+    int move;
     double maxTime;
     bool abort;
 
 public:
-    Mcts_zobrist(double time, TTable* global_table, ZobristHash* z) {
+    Mcts_zobrist(double time, TTable* global_table, int m) {
         table = global_table;
         maxTime = time;
+        move = m;
     }
 
     ~Mcts_zobrist() {}
 
-    Point run(Board* curr_board, int rank, uint64_t curr_time, int& num_games, ZobristHash z);
+    Point run(Board* curr_board, int rank, int& num_games) override;
 	
-	void run_iteration(Board* curr_board, uint64_t curr_time, int& num_games);
+	void run_iteration(Board* curr_board, int& num_games);
     
-	void backprop(const std::vector<uint64_t>& search_path, double wins, double sims, uint64_t current_time);
+	void backprop(const std::vector<uint64_t>& search_path, double wins, double sims);
 
 	bool checkAbort();
 };
+
+#endif

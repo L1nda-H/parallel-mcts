@@ -155,4 +155,4 @@ def run_match(engine1_cmd, engine2_cmd, games=1):
 
 if __name__ == "__main__":
     # Point these directly to executables
-    run_match("srun -n 2 ./build/go_mcts_parallel", "./pachi/pachi -t 1 -d0 -o pachilog.log threads=1,policy=ucb1,playout=light,prior=eqex=0,dynkomi=none,pondering=0,pass_all_alive", games=2)
+    run_match("srun -n 1 ./build/go_engine", "./pachi/pachi -t 1 -d0 -o pachilog.log threads=1,policy=ucb1,playout=light,prior=eqex=0,dynkomi=none,pondering=0,pass_all_alive", games=2)

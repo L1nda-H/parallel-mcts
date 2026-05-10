@@ -27,12 +27,15 @@ if (NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
             "module swap ${Prg-${CMAKE_C_COMPILER_ID}} PrgEnv-gnu")
 endif ()
 
-add_executable(go_mcts main.cpp Go.cpp mcts_serial.cpp mcts.h point.h common.h)
-target_link_libraries(go_mcts PRIVATE OpenMP::OpenMP_CXX)
+# ONE executable, linking your Parallel Tree and your Zobrist Engine
+add_executable(go_engine 
+    main.cpp 
+    Go.cpp 
+    mcts_parallel.cpp 
+    mcts_zobrist.cpp
+)
 
-add_executable(go_mcts_parallel main.cpp Go.cpp mcts_parallel.cpp mcts.h point.h common.h)
-target_link_libraries(go_mcts_parallel PRIVATE OpenMP::OpenMP_CXX)
+target_link_libraries(go_engine PRIVATE OpenMP::OpenMP_CXX)
 
-# Copy the job scripts
 configure_file(run_mcts.sh run_mcts.sh COPYONLY)
 configure_file(run_parallel_mcts.sh run_parallel_mcts.sh COPYONLY)

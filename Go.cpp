@@ -2,7 +2,6 @@
 #include <iostream>
 #include "Go.h"
 #include "tdeque.h"
-#include "common.h"
 
 bool Board::canEat(int i, int j, COLOR color) {
     setBoard(i, j, color);
@@ -50,7 +49,7 @@ bool Board::canEat(int i, int j, COLOR color) {
         }
     }
     
-    setBoard(i, j, EMPTY);
+    setBoard(i, j, COLOR::EMPTY);
     return result;
 }
 
@@ -178,7 +177,7 @@ int Board::update_board(Point pos) {
 				total += q2.size();
 				for (int it = q2.head; it != q2.tail; it++) {
 					Point p = q2.get(it);
-					setBoard(p.i, p.j, EMPTY);
+					setBoard(p.i, p.j, COLOR::EMPTY);
 				}
 			}
 			q2.clear();
