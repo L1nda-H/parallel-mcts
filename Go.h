@@ -23,6 +23,7 @@ private:
 	bool isSuicide(int i, int j, COLOR color);
 	ZobristHash hash_table;
 	uint64_t state_hash;
+	int countLiberties(int i, int j, COLOR color);
 	COLOR player;	// current player
 	int bsize;
 	int bsize_idx;
