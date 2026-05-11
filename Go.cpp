@@ -133,8 +133,14 @@ std::vector<Point> Board::get_next_legal_moves() {
 }
 
 int Board::update_board(Point pos) {
-    setBoard(pos.i, pos.j, player);
+    COLOR curr_play = player;
     COLOR op_color = static_cast<COLOR>(player ^ 3);
+    player = op_color;
+    if (pos.i == -1 || pos.j == -1) {
+        return 0;
+    }
+    
+    setBoard(pos.i, pos.j, curr_play);
 
     thread_local bool visited[MAX_POINTS];
 
@@ -183,7 +189,6 @@ int Board::update_board(Point pos) {
 			q2.clear();
         }
     }
-    player = op_color;
     return total;
 }
 

@@ -18,7 +18,15 @@ int main(int argc, char** argv) {
 
 	MctsEngine* mcts = nullptr;
 
-	bool zobrist = false;
+	bool zobrist = false; 
+
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "--zobrist" || arg == "-z") { 
+            zobrist = true;
+            break;
+        }
+    }
 
 	ZobristHash z;
 	TTable ttable;
@@ -32,7 +40,7 @@ int main(int argc, char** argv) {
 	bool root = rank == 0;
 	int cmd_len = 0;
 	double seconds = -1;
-	int move_num = 0;
+	int move_num = 1;
 
 	while (running) {
 		if (root) {
@@ -100,6 +108,7 @@ int main(int argc, char** argv) {
 			num_games = 0;
 
 			auto start_time = std::chrono::steady_clock::now();
+			if (rank == 0) std::cerr << "Beginning run\n";
             p = mcts->run(board, rank, num_games);
 			auto end_time = std::chrono::steady_clock::now();
 			std::chrono::duration<double> diff = end_time - start_time;

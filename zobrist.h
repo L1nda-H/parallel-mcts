@@ -53,7 +53,7 @@ struct TNode {
     double wins;
     double sims;
 
-    TNode() : hash(0), timestamp(0), wins(0.0), sims(0.0) {};
+    TNode() : hash(0), timestamp(1), wins(0.0), sims(0.0) {};
 };
 
 class TTable {
@@ -85,7 +85,6 @@ public:
         }
 
         if (node.hash != board_hash) {
-            // is lazy overwriting of old game state an issue? 
             node.hash = board_hash;
             node.wins = 0;
             node.sims = 0;
@@ -117,7 +116,7 @@ public:
 
     Point run(Board* curr_board, int rank, int& num_games) override;
 	
-	void run_iteration(Board* curr_board, int& num_games);
+	void run_iteration(Board* curr_board, int rank, int& num_games);
     
 	void backprop(const std::vector<uint64_t>& search_path, double wins, double sims);
 

@@ -23,7 +23,7 @@ Point Mcts_zobrist::run(Board* curr_board, int rank, int& num_games) {
     Board* curr_board_copy = new Board(bsize, z);
     while(!checkAbort()) {
         curr_board_copy->copy_board(curr_board);
-        run_iteration(curr_board_copy, num_games);
+        run_iteration(curr_board_copy, rank, num_games);
     }
     delete curr_board_copy;
 
@@ -77,26 +77,27 @@ void Mcts_zobrist::backprop(const std::vector<uint64_t>& search_path, double win
     }
 }
 
-void Mcts_zobrist::run_iteration(Board* curr_board, int& num_games) {
+void Mcts_zobrist::run_iteration(Board* curr_board, int rank, int& num_games) {
     std::vector<uint64_t> search_path;
 
     uint64_t current_hash = curr_board->get_hash();
-    double n = table->getNode(current_hash)->sims;
     ZobristHash z = curr_board->get_htable();
     search_path.push_back(current_hash);
 
     bool reached_unexpanded_node = false;
 
-    while (curr_board->get_next_legal_moves().size() != 0 && !reached_unexpanded_node) {
-        // do we really need to scramble?
-        std::vector<Point> legal_moves = curr_board->get_next_legal_moves();
+    std::vector<Point> legal_moves = curr_board->get_next_legal_moves();
+
+    while (legal_moves.size() != 0 && !reached_unexpanded_node) {
+        
         uint64_t best_hash = 0;
         Point best_move(-1, -1);
         double maxv = -1.0;
 
-        // expand step gets eliminated bc everything is hashed
-        // this is selection
-        TNode* root = table->getNode(current_hash);
+        TNode* parent_node = table->getNode(current_hash);
+        double parent_sims = parent_node->sims;
+
+        // if (rank == 0) std::cerr << "iterating through legal moves of " << current_hash << "\n";
         for (Point p : legal_moves) {
             int pid = Point::point_to_id(p, curr_board->get_bsize());
             uint64_t c_hash = z.updateHash(current_hash, pid, curr_board->ToPlay());
@@ -109,7 +110,7 @@ void Mcts_zobrist::run_iteration(Board* curr_board, int& num_games) {
                 break;
             }
 
-            double v = c_node->wins / (c_node->sims + EPSILON) + C * sqrt(log(n + EPSILON) / (c_node->sims + EPSILON));
+            double v = c_node->wins / (c_node->sims + EPSILON) + C * sqrt(log(parent_sims + EPSILON) / (c_node->sims + EPSILON));
 
             if (v > maxv) {
                 maxv = v;
@@ -122,12 +123,18 @@ void Mcts_zobrist::run_iteration(Board* curr_board, int& num_games) {
         current_hash = best_hash;
         search_path.push_back(current_hash);
 
-        double wins = 0.0;
-        double sims = 0.0;
-        simulate(curr_board, &wins, &sims);
-
-        backprop(search_path, wins, sims);
+        if (!reached_unexpanded_node) {
+            legal_moves = curr_board->get_next_legal_moves();
+        }
     }
+
+    if (rank == 0) std::cerr << "simulating \n";
+    double wins = 0.0;
+    double sims = 0.0;
+    simulate(curr_board, &wins, &sims);
+
+    if (rank == 0) std::cerr << "backpropagating \n";
+    backprop(search_path, wins, sims);
 }
 
 bool Mcts_zobrist::checkAbort() {

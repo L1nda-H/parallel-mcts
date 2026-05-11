@@ -21,6 +21,7 @@ private:
 	std::vector<int> board; 
 	bool canEat(int i, int j, COLOR color);
 	bool isSuicide(int i, int j, COLOR color);
+	bool zobrist;
 	ZobristHash hash_table;
 	uint64_t state_hash;
 	int countLiberties(int i, int j, COLOR color);
@@ -40,7 +41,7 @@ public:
 			board[i] = 3;
 			board[(bsize_idx) * (bsize + 1) + i] = 3;
 		}
-
+		zobrist = false;
 		player = COLOR::BLACK; // black play first
 	}
 
@@ -55,6 +56,7 @@ public:
 			board[i] = 3;
 			board[(bsize_idx) * (bsize + 1) + i] = 3;
 		}
+		zobrist = false;
 		hash_table = ht;
 		state_hash = ht.generateInitHash(board);
 
@@ -73,7 +75,7 @@ public:
 		}
 		hash_table = b.hash_table;
 		state_hash = b.state_hash;
-
+		zobrist = b.zobrist;
 		player = b.ToPlay();
 	}
 
@@ -108,8 +110,8 @@ public:
 	}
 
 	void setBoard(int i, int j, COLOR c) {
-		if(i != -1 && j != -1) {
-			board[i * (bsize_idx) + j] = c;
+		board[i * (bsize_idx) + j] = c;
+		if (zobrist) {
 			state_hash = hash_table.updateHash(state_hash, i * (bsize_idx) + j, c);
 		}
 	}
