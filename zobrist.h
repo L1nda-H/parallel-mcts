@@ -25,8 +25,8 @@ struct ZobristHash {
 
         wTable.resize(bsize * bsize);
         bTable.resize(bsize * bsize);
-        for (int i = 1; i < bsize - 1; i++) {
-            for (int j = 1; j < bsize - 1; j++) {
+        for (int i = 0; i < bsize; i++) {
+            for (int j = 0; j < bsize; j++) {
                 wTable[i * bsize + j] = dis(gen);
                 bTable[i * bsize + j] = dis(gen);
             }
@@ -84,12 +84,15 @@ public:
         }
 
         if (node.hash != board_hash) {
-            std::cerr << "clearing board \n";
+            // std::cerr << "clearing board for hash " << board_hash << "\n";
+            fflush(stderr);
             node.hash = board_hash;
             node.wins = 0;
             node.sims = 0;
         }
 
+        // std::cerr << "adding " << sims_to_add << " for hash " << board_hash << "\n";
+        fflush(stderr);
         node.wins += wins_to_add;
         node.sims += sims_to_add;
 
@@ -104,13 +107,15 @@ private:
     int move;
     double maxTime;
     bool abort;
+    COLOR player;
 
 public:
-    Mcts_zobrist(double time, TTable* global_table, int m) {
+    Mcts_zobrist(double time, TTable* global_table, int m, COLOR c) {
         table = global_table;
         maxTime = time;
         move = m;
         abort = false;
+        player = c;
     }
 
     ~Mcts_zobrist() {}
@@ -118,6 +123,8 @@ public:
     Point run(Board* curr_board, int rank, int& num_games) override;
 	
 	void run_iteration(Board* curr_board, Board* scratch_board, int rank, int& num_games);
+
+    void simulate(Board* b, double* wins, double* sims);
     
 	void backprop(const std::vector<uint64_t>& search_path, double wins, double sims);
 

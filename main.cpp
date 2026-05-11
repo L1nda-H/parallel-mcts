@@ -99,7 +99,7 @@ int main(int argc, char** argv) {
 			std::string color;
             ss >> color;
 			if (zobrist) {
-				mcts = new Mcts_zobrist(TIME_EACH_MOVE, &ttable, move_num);
+				mcts = new Mcts_zobrist(TIME_EACH_MOVE, &ttable, move_num, color == "BLACK" ? BLACK : WHITE);
 			} else {
 				mcts = new Mcts(TIME_EACH_MOVE, Point(-1, -1));
 			}

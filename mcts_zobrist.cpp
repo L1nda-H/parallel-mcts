@@ -24,7 +24,7 @@ Point Mcts_zobrist::run(Board* curr_board, int rank, int& num_games) {
 
     #pragma omp parallel 
     {
-        if (rank == 0 && omp_get_thread_num() == 0) std::cerr << "num threads: " << omp_get_num_threads() << "\n";
+        // if (rank == 0 && omp_get_thread_num() == 0) std::cerr << "num threads: " << omp_get_num_threads() << "\n";
 
         Board* curr_board_copy = new Board(bsize, z);
         Board* scratch_board = new Board(bsize, z);
@@ -46,17 +46,21 @@ Point Mcts_zobrist::run(Board* curr_board, int rank, int& num_games) {
 
     double maxv = -1.0;
     std::vector<int> best_ids;
+    Board* scratch_board = new Board(bsize, z);
+
     for(int i = 0; i < legal_moves.size(); i++){
+        scratch_board->copy_board(curr_board);
         int id = Point::point_to_id(legal_moves[i], bsize);
-        uint64_t child_hash = z.updateHash(curr_board->get_hash(), id, curr_board->ToPlay());
+        scratch_board->update_board(legal_moves[i]);
+        uint64_t child_hash = scratch_board->get_hash();
 
         TNode* child_data = table->getNode(child_hash);
 
         double v = child_data->sims;
 
-        if (rank == 0 && omp_get_thread_num() == 0) {
-            std::cerr << "Point " << Point::pt_to_gtp(legal_moves[i], bsize) << " had " << v << " sims\n";
-        }
+        // if (rank == 0 && omp_get_thread_num() == 0) {
+        //     std::cerr << "Point " << Point::pt_to_gtp(legal_moves[i], bsize) << " had " << v << " sims\n";
+        // }
 
         if(v > maxv){
             maxv = v;
@@ -67,7 +71,7 @@ Point Mcts_zobrist::run(Board* curr_board, int rank, int& num_games) {
         }
     }
 
-    if (rank == 0 && omp_get_thread_num() == 0) std::cerr << "Num of best ids is " << best_ids.size() << "\n";
+    // if (rank == 0 && omp_get_thread_num() == 0) std::cerr << "Num of best ids is " << best_ids.size() << "\n";
     thread_local std::mt19937 gen(std::random_device{}());
     std::uniform_int_distribution<int> dist(0, best_ids.size() - 1);
     int best_id = best_ids[dist(gen)];
@@ -75,8 +79,8 @@ Point Mcts_zobrist::run(Board* curr_board, int rank, int& num_games) {
     return Point::id_to_point(best_id, bsize);
 }
 
-void simulate(Board* b, double* wins, double* sims) {
-    COLOR player = b->ToPlay();
+void Mcts_zobrist::simulate(Board* b, double* wins, double* sims) {
+    // COLOR player = b->get_player();
     int curr_step = 0;
     thread_local std::mt19937 rng(std::random_device{}());
 	while (curr_step < MAX_STEP) {
@@ -101,8 +105,7 @@ void simulate(Board* b, double* wins, double* sims) {
 void Mcts_zobrist::backprop(const std::vector<uint64_t>& search_path, double wins, double sims) {
     // backprop
     for (uint64_t hash : search_path) {
-        // -1.0 to account for virtual loss
-        table->updateNode(hash, wins, sims - 1.0, move);
+        table->updateNode(hash, wins - 0.5, sims - 1.0, move);
     }
 }
 
@@ -142,7 +145,14 @@ void Mcts_zobrist::run_iteration(Board* curr_board, Board* scratch_board, int ra
                 break;
             }
 
-            double v = c_node->wins / (c_node->sims + EPSILON) + C * sqrt(log(parent_sims + EPSILON) / (c_node->sims + EPSILON));
+            double winrate;
+            if (curr_board->ToPlay() == BLACK) { 
+                winrate = c_node->wins / (c_node->sims + EPSILON);
+            } else {
+                winrate = (c_node->sims - c_node->wins) / (c_node->sims + EPSILON);
+            }
+
+            double v = winrate + C * sqrt(log(parent_sims + EPSILON) / (c_node->sims + EPSILON));
 
             if (v > maxv) {
                 maxv = v;
@@ -156,13 +166,8 @@ void Mcts_zobrist::run_iteration(Board* curr_board, Board* scratch_board, int ra
         current_hash = curr_board->get_hash();
         search_path.push_back(current_hash);
 
-        
-        // if (rank == 0 && omp_get_thread_num() == 0) {
-        //     std::cerr << "point selected to simulate is " << Point::pt_to_gtp(best_move, curr_board->get_bsize()) << " \n";
-        // }
-
-        #pragma omp atomic
-        table->getNode(current_hash)->sims += VIRTUAL_LOSS;
+        // APPLY VIRTUAL LOSS
+        table->updateNode(current_hash, 0.5, 1.0, move);
 
         if (best_move.i == -1) {
             consecutive_passes++;

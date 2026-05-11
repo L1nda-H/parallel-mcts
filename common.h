@@ -6,7 +6,7 @@
 #define MAX_STEP 100 // redefine to avoid repeat game
 #define BILLION 1000000000L
 #define MILLION 1000000.0
-#define VIRTUAL_LOSS 1.0
+#define VIRTUAL_LOSS 0.5
 
 enum COLOR {
     EMPTY = 0,

@@ -63,22 +63,6 @@ public:
 		player = COLOR::BLACK; // black play first
 	}
 
-	//copy constructor
-	// Board(const Board& b) {
-	// 	bsize = b.bsize;
-	// 	bsize_idx = b.bsize_idx;
-	// 	board.resize(bsize_idx * bsize_idx);
-	// 	for (int i = 0; i < bsize_idx; i++) {
-	// 		for (int j = 0; j < bsize_idx; j++) {
-	// 			board[i * (bsize_idx) + j] = b.getBoard(i, j);
-	// 		}
-	// 	}
-	// 	hash_table = b.hash_table;
-	// 	state_hash = b.state_hash;
-	// 	zobrist = b.zobrist;
-	// 	player = b.ToPlay();
-	// }
-
 	void clear() {
 		std::fill(board.begin(), board.end(), EMPTY);
 
@@ -115,6 +99,7 @@ public:
 
 	void copy_board(const Board* other) {
 		this->player = other->player;
+		this->state_hash = other->state_hash;
 		
 		std::memcpy(this->board.data(), other->board.data(), this->board.size() * sizeof(int));
 	}
