@@ -93,7 +93,6 @@ int main(int argc, char** argv) {
 			
 			Point p = Point (coord, board->get_bsize());
 			board->update_board(p);
-			// TODO handle resigning and pass moves ?
 			if (root) std::cout << "=\n\n";
 		} else if (cmd_type == "genmove")
 		{
@@ -108,7 +107,6 @@ int main(int argc, char** argv) {
 			num_games = 0;
 
 			auto start_time = std::chrono::steady_clock::now();
-			if (rank == 0) std::cerr << "Beginning run\n";
             p = mcts->run(board, rank, num_games);
 			auto end_time = std::chrono::steady_clock::now();
 			std::chrono::duration<double> diff = end_time - start_time;

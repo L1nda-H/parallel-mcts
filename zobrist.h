@@ -4,6 +4,7 @@
 #include <random>
 #include <vector>
 #include <atomic>
+#include <iostream>
 
 #include "common.h"
 #include "mcts.h"
@@ -11,37 +12,35 @@
 class Board;
 
 struct ZobristHash {
-    std::vector<uint64_t> table;
+    std::vector<uint64_t> wTable;
+    std::vector<uint64_t> bTable;
 
     ZobristHash() {};
 
-    void buildTable (int bsize_idx) {
+    void buildTable (int bsize) {
         std::random_device rd;
         std::mt19937_64 gen(rd());
 
         std::uniform_int_distribution<uint64_t> dis;
 
-        table.resize(2 * bsize_idx * bsize_idx);
-        for (int i = 1; i < table.size() - 1; i++) {
-            table[i] = dis(gen);
-        }
-    }
-
-    uint64_t generateInitHash(std::vector<int>& b) {
-        uint64_t hash = 0;
-        for(int i = 1; i < b.size() - 1; i++) {
-            if (b[i] != EMPTY && b[i] != OUT) {
-                hash = hash ^= table[b[i] - 1 + i * 2];
+        wTable.resize(bsize * bsize);
+        bTable.resize(bsize * bsize);
+        for (int i = 1; i < bsize - 1; i++) {
+            for (int j = 1; j < bsize - 1; j++) {
+                wTable[i * bsize + j] = dis(gen);
+                bTable[i * bsize + j] = dis(gen);
             }
         }
-        return hash;
     }
 
     uint64_t updateHash(uint64_t current_hash, int pos, COLOR color) {
-        if (color == EMPTY || color == OUT) {
+        if (color == OUT) {
             return current_hash;
         }
-        return current_hash ^= table[pos * 2 + color - 1];
+        if (color == WHITE) {
+            return current_hash ^= wTable[pos];
+        }
+        return current_hash ^= bTable[pos];
     }
 };
 
@@ -85,6 +84,7 @@ public:
         }
 
         if (node.hash != board_hash) {
+            std::cerr << "clearing board \n";
             node.hash = board_hash;
             node.wins = 0;
             node.sims = 0;
@@ -117,7 +117,7 @@ public:
 
     Point run(Board* curr_board, int rank, int& num_games) override;
 	
-	void run_iteration(Board* curr_board, int rank, int& num_games);
+	void run_iteration(Board* curr_board, Board* scratch_board, int rank, int& num_games);
     
 	void backprop(const std::vector<uint64_t>& search_path, double wins, double sims);
 
