@@ -21,11 +21,17 @@ Point Mcts_zobrist::run(Board* curr_board, int rank, int& num_games) {
 
     ZobristHash z = curr_board->get_htable();
     Board* curr_board_copy = new Board(bsize, z);
+    int games = 0;
+
     while(!checkAbort()) {
         curr_board_copy->copy_board(curr_board);
         run_iteration(curr_board_copy, rank, num_games);
+        games++;
     }
     delete curr_board_copy;
+
+    #pragma omp atomic
+    num_games += games;
 
     std::vector<Point> legal_moves = curr_board->get_next_legal_moves();
 
@@ -84,10 +90,13 @@ void Mcts_zobrist::run_iteration(Board* curr_board, int rank, int& num_games) {
     ZobristHash z = curr_board->get_htable();
     search_path.push_back(current_hash);
 
+    int consecutive_passes = 0;
+
     bool reached_unexpanded_node = false;
 
     std::vector<Point> legal_moves = curr_board->get_next_legal_moves();
 
+    std::cerr << "selecting node \n";
     while (legal_moves.size() != 0 && !reached_unexpanded_node) {
         
         uint64_t best_hash = 0;
@@ -97,7 +106,6 @@ void Mcts_zobrist::run_iteration(Board* curr_board, int rank, int& num_games) {
         TNode* parent_node = table->getNode(current_hash);
         double parent_sims = parent_node->sims;
 
-        // if (rank == 0) std::cerr << "iterating through legal moves of " << current_hash << "\n";
         for (Point p : legal_moves) {
             int pid = Point::point_to_id(p, curr_board->get_bsize());
             uint64_t c_hash = z.updateHash(current_hash, pid, curr_board->ToPlay());
@@ -123,17 +131,23 @@ void Mcts_zobrist::run_iteration(Board* curr_board, int rank, int& num_games) {
         current_hash = best_hash;
         search_path.push_back(current_hash);
 
+        if (best_move.i == -1) {
+            consecutive_passes++;
+        } else {
+            consecutive_passes = 0; // Reset if a physical stone was played
+        }
+
         if (!reached_unexpanded_node) {
             legal_moves = curr_board->get_next_legal_moves();
         }
     }
 
-    if (rank == 0) std::cerr << "simulating \n";
     double wins = 0.0;
     double sims = 0.0;
+    if (rank == 0) std::cerr << "Simulating \n";
     simulate(curr_board, &wins, &sims);
 
-    if (rank == 0) std::cerr << "backpropagating \n";
+    if (rank == 0) std::cerr << "Backpropagating\n";
     backprop(search_path, wins, sims);
 }
 

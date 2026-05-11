@@ -110,6 +110,7 @@ public:
         table = global_table;
         maxTime = time;
         move = m;
+        abort = false;
     }
 
     ~Mcts_zobrist() {}
