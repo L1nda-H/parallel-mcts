@@ -6,8 +6,9 @@
 #include <cmath>
 
 #include "point.h"
-#include "Go.h"
 #include "omp.h"
+
+class Board;
 
 class TreeNode {
 private:
@@ -62,7 +63,14 @@ public:
 };
 
 
-class Mcts {
+class MctsEngine {
+public:
+    virtual Point run(Board* curr_board, int rank, int& num_games) = 0;
+    
+    virtual ~MctsEngine() {} 
+};
+
+class Mcts : public MctsEngine{
 private:
 	TreeNode* root;
 	struct timespec start, end;
@@ -86,7 +94,7 @@ public:
 		delete root;
 	}
 
-	Point run(Board* curr_board, int rank, int& num_games);
+	Point run(Board* curr_board, int rank, int& num_games) override;
 	
 	void run_iteration(TreeNode* node, Board* curr_board, int& num_games);
 	TreeNode *selection(TreeNode* node);

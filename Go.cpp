@@ -2,7 +2,6 @@
 #include <iostream>
 #include "Go.h"
 #include "tdeque.h"
-#include "common.h"
 
 bool Board::canEat(int i, int j, COLOR color) {
     setBoard(i, j, color);
@@ -58,7 +57,7 @@ bool Board::canEat(int i, int j, COLOR color) {
         }
     }
     
-    setBoard(i, j, EMPTY);
+    setBoard(i, j, COLOR::EMPTY);
     return result;
 }
 
@@ -142,8 +141,15 @@ std::vector<Point> Board::get_next_legal_moves() {
 }
 
 int Board::update_board(Point pos) {
-    setBoard(pos.i, pos.j, player);
+    COLOR curr_play = player;
     COLOR op_color = static_cast<COLOR>(player ^ 3);
+    player = op_color;
+    if (pos.i == -1 || pos.j == -1) {
+        return 0;
+    }
+    
+    setBoard(pos.i, pos.j, curr_play);
+    state_hash = hash_table.updateHash(state_hash, Point::point_to_id(pos, bsize), curr_play);
 
     thread_local bool visited[MAX_POINTS];
 
@@ -186,13 +192,16 @@ int Board::update_board(Point pos) {
 				total += q2.size();
 				for (int it = q2.head; it != q2.tail; it++) {
 					Point p = q2.get(it);
-					setBoard(p.i, p.j, EMPTY);
+                    if (zobrist) {
+                        int pos = Point::point_to_id(p, bsize);
+                        state_hash = hash_table.updateHash(state_hash, pos, getBoard(p.i, p.j));
+                    }
+					setBoard(p.i, p.j, COLOR::EMPTY);
 				}
 			}
 			q2.clear();
         }
     }
-    player = op_color;
     return total;
 }
 

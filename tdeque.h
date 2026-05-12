@@ -1,3 +1,6 @@
+#ifndef TDEQUE_H
+#define TDEQUE_H
+
 #include <cstring>
 #include "point.h"
 #include "common.h"
@@ -36,3 +39,5 @@ struct TDeque {
         return data[i];
     }
 };
+
+#endif

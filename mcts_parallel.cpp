@@ -13,22 +13,6 @@
 #include "mpi.h"
 #include "common.h"
 
-int point_to_id(Point p, int bsize){
-	if(p.i == -1 && p.j == -1){
-		return -1;
-	}
-
-	return (p.i - 1) * bsize + (p.j - 1);
-}
-
-Point id_to_point(int id, int bsize){
-	if(id == -1){
-		return Point(-1, -1);
-	}
-
-	return Point((id / bsize) + 1, (id % bsize) + 1);
-}
-
 Point Mcts::run(Board* curr_board, int rank, int& num_games) {
 	// sync all MPI processes before starting
 	MPI_Barrier(MPI_COMM_WORLD);
@@ -52,7 +36,7 @@ Point Mcts::run(Board* curr_board, int rank, int& num_games) {
 	std::vector<TreeNode*> children = root->get_children();
 	for (std::vector<TreeNode*>::iterator it = children.begin(); it != children.end(); it++) {
 		TreeNode* c = *it;
-		int id = point_to_id(c->get_move(), bsize);
+		int id = Point::point_to_id(c->get_move(), bsize);
 		if(id > -1) {
 			local_sims[id] = c->sims;
 		}
@@ -81,7 +65,7 @@ Point Mcts::run(Board* curr_board, int rank, int& num_games) {
 		num_games += std::accumulate(global_sims, global_sims + num_possible_moves, 0);
 	}
 
-	return id_to_point(best_id, bsize);
+	return Point::id_to_point(best_id, bsize);
 }
 
 TreeNode* Mcts::selection(TreeNode* node) {

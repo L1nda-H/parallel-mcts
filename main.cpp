@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include <chrono>
 #include "Go.h"
-#include "mcts.h"
-#include "point.h"
+#include "zobrist.h"
 #include "mpi.h"
 #include <string>
 #include <iostream>
@@ -16,8 +15,22 @@ int main(int argc, char** argv) {
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
+
+	MctsEngine* mcts = nullptr;
+
+	bool zobrist = false; 
+
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "--zobrist" || arg == "-z") { 
+            zobrist = true;
+            break;
+        }
+    }
+
+	ZobristHash z;
+	TTable ttable;
 	
-	Mcts* mcts;
 	Point p = Point(-1, -1);
 	Board* board;
 	int step = 0;
@@ -27,6 +40,7 @@ int main(int argc, char** argv) {
 	bool root = rank == 0;
 	int cmd_len = 0;
 	double seconds = -1;
+	int move_num = 1;
 
 	while (running) {
 		if (root) {
@@ -62,7 +76,8 @@ int main(int argc, char** argv) {
 		{
 			int board_size;
 			ss >> board_size;
-			board = new Board(board_size);
+			z.buildTable(board_size);
+			board = new Board(board_size, z);
 			if (root) std::cout << "=\n\n";
 		} else if (cmd_type == "clear_board")
 		{
@@ -78,16 +93,19 @@ int main(int argc, char** argv) {
 			
 			Point p = Point (coord, board->get_bsize());
 			board->update_board(p);
-			// TODO handle resigning and pass moves ?
 			if (root) std::cout << "=\n\n";
 		} else if (cmd_type == "genmove")
 		{
 			std::string color;
             ss >> color;
-            mcts = new Mcts(TIME_EACH_MOVE, Point(-1, -1));
+			if (zobrist) {
+				mcts = new Mcts_zobrist(TIME_EACH_MOVE, &ttable, move_num);
+			} else {
+				mcts = new Mcts(TIME_EACH_MOVE, Point(-1, -1));
+			}
+			move_num++;
 			num_games = 0;
 
-			// TODO When there are not many move options left in the game, GPS drops heavily and the simulation also takes longer, possibly bc of lock contention while updating nodes?
 			auto start_time = std::chrono::steady_clock::now();
             p = mcts->run(board, rank, num_games);
 			auto end_time = std::chrono::steady_clock::now();

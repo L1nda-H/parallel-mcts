@@ -3,6 +3,9 @@
 
 #include "point.h"
 #include "string.h"
+#include "zobrist.h"
+#include "common.h"
+
 #include <deque>
 #include <vector>
 #include <string.h>
@@ -12,14 +15,15 @@
 // TODO pachi has a different concept of komi, so we might just remove this
 #define KOMI 0
 
-enum COLOR {WHITE = 1, BLACK = 2, EMPTY = 0, OUT = 3};
-
 class Board {
 private:
 	int dir[4][2] = {{1, 0}, {0, 1}, { -1, 0}, {0, -1}};
-	std::vector<int> board; 
+	std::vector<COLOR> board; 
 	bool canEat(int i, int j, COLOR color);
 	bool isSuicide(int i, int j, COLOR color);
+	bool zobrist;
+	ZobristHash hash_table;
+	uint64_t state_hash;
 	int countLiberties(int i, int j, COLOR color);
 	COLOR player;	// current player
 	int bsize;
@@ -32,41 +36,45 @@ public:
 		board.resize(bsize_idx * bsize_idx);
 		//set the border
 		for (int i = 0; i < bsize_idx; i++) {
-			board[i * (bsize_idx)] = 3;
-			board[i * (bsize_idx) + bsize + 1] = 3;
-			board[i] = 3;
-			board[(bsize_idx) * (bsize + 1) + i] = 3;
+			board[i * (bsize_idx)] = OUT;
+			board[i * (bsize_idx) + bsize + 1] = OUT;
+			board[i] = OUT;
+			board[(bsize_idx) * (bsize + 1) + i] = OUT;
 		}
-
-		player = BLACK; // black play first
+		zobrist = false;
+		player = COLOR::BLACK; // black play first
 	}
 
-	//copy constructor
-	Board(const Board& b) {
-		bsize = b.bsize;
-		bsize_idx = b.bsize_idx;
+	Board(int board_size, ZobristHash ht) {
+		bsize = board_size;
+		bsize_idx = board_size + 2;
 		board.resize(bsize_idx * bsize_idx);
+		//set the border
 		for (int i = 0; i < bsize_idx; i++) {
-			for (int j = 0; j < bsize_idx; j++) {
-				board[i * (bsize_idx) + j] = b.getBoard(i, j);
-			}
+			board[i * (bsize_idx)] = OUT;
+			board[i * (bsize_idx) + bsize + 1] = OUT;
+			board[i] = OUT;
+			board[(bsize_idx) * (bsize + 1) + i] = OUT;
 		}
+		zobrist = false;
+		hash_table = ht;
+		state_hash = 0;
 
-		player = b.ToPlay();
+		player = COLOR::BLACK; // black play first
 	}
 
 	void clear() {
-		std::fill(board.begin(), board.end(), 0);
+		std::fill(board.begin(), board.end(), EMPTY);
 
 		//set the border
 		for (int i = 0; i < bsize_idx; i++) {
-			board[i * (bsize_idx)] = 3;
-			board[i * (bsize_idx) + bsize + 1] = 3;
-			board[i] = 3;
-			board[(bsize_idx) * (bsize + 1) + i] = 3;
+			board[i * (bsize_idx)] = OUT;
+			board[i * (bsize_idx) + bsize + 1] = OUT;
+			board[i] = OUT;
+			board[(bsize_idx) * (bsize + 1) + i] = OUT;
 		}
 
-		player = BLACK; // black play first
+		player = COLOR::BLACK; // black play first
 	}
 
 	void print_board();
@@ -76,31 +84,36 @@ public:
 	int update_board(Point pos);
 
 	int quick_score();
-
-	double aga_score();
 	
 	COLOR ToPlay() const {
 		return player;
 	}
 
-	int getBoard(int i, int j) const {
+	COLOR getBoard(int i, int j) const {
 		return board[i * (bsize_idx) + j];
 	}
 
 	void setBoard(int i, int j, COLOR c) {
-		if(i != -1 && j != -1) {
-			board[i * (bsize_idx) + j] = c;
-		}
+		board[i * (bsize_idx) + j] = c;
 	}
 
 	void copy_board(const Board* other) {
 		this->player = other->player;
+		this->state_hash = other->state_hash;
 		
 		std::memcpy(this->board.data(), other->board.data(), this->board.size() * sizeof(int));
 	}
 
 	int get_bsize() {
 		return bsize;
+	}
+
+	uint64_t get_hash() {
+		return state_hash;
+	}
+
+	ZobristHash get_htable() {
+		return hash_table;
 	}
 };
 

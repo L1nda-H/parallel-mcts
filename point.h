@@ -51,6 +51,23 @@ public:
 		
 		return coord;
 	}
+
+	static int point_to_id(Point p, int bsize){
+		if(p.i == -1 && p.j == -1){
+			return -1;
+		}
+
+		return (p.i - 1) * bsize + (p.j - 1);
+	}
+
+	static Point id_to_point(int id, int bsize){
+		if(id == -1){
+			return Point(-1, -1);
+		}
+
+		return Point((id / bsize) + 1, (id % bsize) + 1);
+	}
+
 };
 
 #endif
