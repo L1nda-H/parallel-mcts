@@ -134,6 +134,9 @@ void Mcts::backprop(TreeNode* node, int win_increase, int sim_increase) {
 	}
 
 	if (node->parent != NULL) {
+		#pragma omp atomic
+		node->sims += (sim_increase - VIRTUAL_LOSS);
+		
 		node = node->parent;
 	}
 }
