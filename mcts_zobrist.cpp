@@ -58,9 +58,9 @@ Point Mcts_zobrist::run(Board* curr_board, int rank, int& num_games) {
 
         double v = child_data->sims;
 
-        // if (rank == 0 && omp_get_thread_num() == 0) {
-        //     std::cerr << "Point " << Point::pt_to_gtp(legal_moves[i], bsize) << " had " << v << " sims\n";
-        // }
+        if (rank == 0 && omp_get_thread_num() == 0) {
+            std::cerr << "Point " << Point::pt_to_gtp(legal_moves[i], bsize) << " had " << v << " sims\n";
+        }
 
         if(v > maxv){
             maxv = v;
@@ -80,7 +80,7 @@ Point Mcts_zobrist::run(Board* curr_board, int rank, int& num_games) {
 }
 
 void Mcts_zobrist::simulate(Board* b, double* wins, double* sims) {
-    // COLOR player = b->get_player();
+    COLOR player = b->ToPlay();
     int curr_step = 0;
     thread_local std::mt19937 rng(std::random_device{}());
 	while (curr_step < MAX_STEP) {
@@ -105,7 +105,7 @@ void Mcts_zobrist::simulate(Board* b, double* wins, double* sims) {
 void Mcts_zobrist::backprop(const std::vector<uint64_t>& search_path, double wins, double sims) {
     // backprop
     for (uint64_t hash : search_path) {
-        table->updateNode(hash, wins - 0.5, sims - 1.0, move);
+        table->updateNode(hash, wins, sims - VIRTUAL_LOSS, move);
     }
 }
 
@@ -124,7 +124,6 @@ void Mcts_zobrist::run_iteration(Board* curr_board, Board* scratch_board, int ra
     thread_local std::mt19937 gen(std::random_device{}());
     std::shuffle(legal_moves.begin(), legal_moves.end(), gen);
 
-    // if (rank == 0 && omp_get_thread_num() == 0) std::cerr << "selecting node \n";
     while (legal_moves.size() != 0 && !reached_unexpanded_node && consecutive_passes < 2) {
         Point best_move(-1, -1);
         double maxv = -1.0;
@@ -132,7 +131,6 @@ void Mcts_zobrist::run_iteration(Board* curr_board, Board* scratch_board, int ra
         TNode* parent_node = table->getNode(current_hash);
         double parent_sims = parent_node->sims;
 
-        // if (rank == 0 && omp_get_thread_num() == 0) std::cerr << "iterating legal moves \n";
         for (Point p : legal_moves) {
             scratch_board->copy_board(curr_board);
             int pid = Point::point_to_id(p, curr_board->get_bsize());
@@ -145,14 +143,7 @@ void Mcts_zobrist::run_iteration(Board* curr_board, Board* scratch_board, int ra
                 break;
             }
 
-            double winrate;
-            if (curr_board->ToPlay() == BLACK) { 
-                winrate = c_node->wins / (c_node->sims + EPSILON);
-            } else {
-                winrate = (c_node->sims - c_node->wins) / (c_node->sims + EPSILON);
-            }
-
-            double v = winrate + C * sqrt(log(parent_sims + EPSILON) / (c_node->sims + EPSILON));
+            double v = c_node->wins / (c_node->sims + EPSILON) + C * sqrt(log(parent_sims + EPSILON) / (c_node->sims + EPSILON));
 
             if (v > maxv) {
                 maxv = v;
@@ -160,14 +151,11 @@ void Mcts_zobrist::run_iteration(Board* curr_board, Board* scratch_board, int ra
             }
         }
 
-        // if (rank == 0 && omp_get_thread_num() == 0) std::cerr << "selected hash " << best_hash << "\n";
-
         curr_board->update_board(best_move);
         current_hash = curr_board->get_hash();
         search_path.push_back(current_hash);
 
-        // APPLY VIRTUAL LOSS
-        table->updateNode(current_hash, 0.5, 1.0, move);
+        table->updateNode(current_hash, 0, VIRTUAL_LOSS, move);
 
         if (best_move.i == -1) {
             consecutive_passes++;
@@ -184,10 +172,8 @@ void Mcts_zobrist::run_iteration(Board* curr_board, Board* scratch_board, int ra
 
     double wins = 0.0;
     double sims = 0.0;
-    // if (rank == 0 && omp_get_thread_num() == 0) std::cerr << "Simulating \n";
     simulate(curr_board, &wins, &sims);
 
-    // if (rank == 0 && omp_get_thread_num() == 0) std::cerr << "Backpropagating\n";
     backprop(search_path, wins, sims);
 }
 

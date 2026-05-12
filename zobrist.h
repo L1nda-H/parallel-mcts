@@ -85,14 +85,14 @@ public:
 
         if (node.hash != board_hash) {
             // std::cerr << "clearing board for hash " << board_hash << "\n";
-            fflush(stderr);
+            // fflush(stderr);
             node.hash = board_hash;
             node.wins = 0;
             node.sims = 0;
         }
 
         // std::cerr << "adding " << sims_to_add << " for hash " << board_hash << "\n";
-        fflush(stderr);
+        // fflush(stderr);
         node.wins += wins_to_add;
         node.sims += sims_to_add;
 
@@ -110,12 +110,11 @@ private:
     COLOR player;
 
 public:
-    Mcts_zobrist(double time, TTable* global_table, int m, COLOR c) {
+    Mcts_zobrist(double time, TTable* global_table, int m) {
         table = global_table;
         maxTime = time;
         move = m;
         abort = false;
-        player = c;
     }
 
     ~Mcts_zobrist() {}
