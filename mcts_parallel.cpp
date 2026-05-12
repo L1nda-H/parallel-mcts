@@ -73,6 +73,10 @@ TreeNode* Mcts::selection(TreeNode* node) {
 	TreeNode* maxn = NULL;
 	double n = node->sims;
 
+	if (n < 1.0) {
+		n = 1.0;
+	}
+
 	std::vector<TreeNode*> children = node->get_children();
 	for (std::vector<TreeNode*>::iterator it = children.begin(); it != children.end(); it++) {
 		TreeNode* c = *it;
@@ -118,8 +122,6 @@ void Mcts::backprop(TreeNode* node, int win_increase, int sim_increase) {
 	}
 
 	if (node->parent != NULL) {
-		#pragma omp atomic
-		node->sims += (sim_increase - VIRTUAL_LOSS);
 		
 		node = node->parent;
 	}
@@ -158,8 +160,8 @@ void Mcts::run_iteration(TreeNode* root, Board* curr_board, int& num_games) {
         node = selection(node);
 
 		// apply virtual loss to discourage other threads 
-		#pragma omp atomic
-		node->sims += VIRTUAL_LOSS;
+		// #pragma omp atomic
+		// node->sims += VIRTUAL_LOSS;
 
 
         curr_board->update_board(node->get_move());

@@ -8,23 +8,19 @@ bool Board::canEat(int i, int j, COLOR color) {
     bool result = false;
     COLOR op_color = static_cast<COLOR>(color ^ 3);
     thread_local TDeque q; 
-    thread_local int visited[MAX_POINTS] = {0};
-    thread_local int current_marker = 0;
+    thread_local bool visited[MAX_POINTS];
 
     q.clear(); 
+    std::memset(visited, false, sizeof(visited));
 
     for (int d = 0; d < 4; d++) {
         int ni = i + dir[d][0];
         int nj = j + dir[d][1];
         
-        if (ni < 1 || ni > bsize || nj < 1 || nj > bsize) continue;
-        
-        if (getBoard(ni, nj) == op_color) {
-            current_marker++; 
-            
+        if (getBoard(ni, nj) == op_color && !visited[ni * bsize_idx + nj]) {
             q.clear();
             q.push_back(Point(ni,nj));
-            visited[ni * bsize_idx + nj] = current_marker;
+            visited[ni * bsize_idx + nj] = true;
             
             int liberty = 0;
             while (!q.empty()) {
@@ -33,21 +29,13 @@ bool Board::canEat(int i, int j, COLOR color) {
                 for (int dd = 0; dd < 4; dd++) {
                     int nni = f.i + dir[dd][0];
                     int nnj = f.j + dir[dd][1];
-                    
-                    if (nni < 1 || nni > bsize || nnj < 1 || nnj > bsize) continue;
-                    
-                    if (visited[nni * bsize_idx + nnj] == current_marker) continue;
-                    
+                    if (visited[nni * bsize_idx + nnj]) continue;
                     if (getBoard(nni, nnj) == op_color) {
-                        visited[nni * bsize_idx + nnj] = current_marker;
+                        visited[nni * bsize_idx + nnj] = true;
                         q.push_back(Point(nni, nnj));
                     } else if (getBoard(nni, nnj) == EMPTY) {
                         liberty++;
-                        break;
                     }
-                }
-                if (liberty > 0) {
-                    break;
                 }
             }
             if (liberty == 0) {
@@ -57,7 +45,7 @@ bool Board::canEat(int i, int j, COLOR color) {
         }
     }
     
-    setBoard(i, j, COLOR::EMPTY);
+    setBoard(i, j, EMPTY);
     return result;
 }
 
