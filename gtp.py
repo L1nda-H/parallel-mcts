@@ -130,7 +130,12 @@ def run_match(engine1_cmd, engine2_cmd, games=1):
                     elif b_move.lower() == "resign": passes = 3
                     else: passes = 0
                     
-                    gtp_cmd(white, f"play b {b_move}") # Tell White what Black did
+                    if b_move.lower() == "resign":
+                        break
+
+                    play_cmd = f"play b {b_move}"
+                    play_response = gtp_cmd(white, play_cmd) # Tell White what Black did
+                    log_play_response(i + 1, moves + 1, w_name, play_cmd, play_response)
                     if passes >= 2: break
                     
                     # --- White move ---
