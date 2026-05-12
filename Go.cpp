@@ -9,19 +9,23 @@ bool Board::canEat(int i, int j, COLOR color) {
     bool result = false;
     COLOR op_color = static_cast<COLOR>(color ^ 3);
     thread_local TDeque q; 
-    thread_local bool visited[MAX_POINTS];
+    thread_local int visited[MAX_POINTS] = {0};
+    thread_local int current_marker = 0;
 
     q.clear(); 
-    std::memset(visited, false, sizeof(visited));
 
     for (int d = 0; d < 4; d++) {
         int ni = i + dir[d][0];
         int nj = j + dir[d][1];
         
-        if (getBoard(ni, nj) == op_color && !visited[ni * bsize_idx + nj]) {
+        if (ni < 1 || ni > bsize || nj < 1 || nj > bsize) continue;
+        
+        if (getBoard(ni, nj) == op_color) {
+            current_marker++; 
+            
             q.clear();
             q.push_back(Point(ni,nj));
-            visited[ni * bsize_idx + nj] = true;
+            visited[ni * bsize_idx + nj] = current_marker;
             
             int liberty = 0;
             while (!q.empty()) {
@@ -30,9 +34,13 @@ bool Board::canEat(int i, int j, COLOR color) {
                 for (int dd = 0; dd < 4; dd++) {
                     int nni = f.i + dir[dd][0];
                     int nnj = f.j + dir[dd][1];
-                    if (visited[nni * bsize_idx + nnj]) continue;
+                    
+                    if (nni < 1 || nni > bsize || nnj < 1 || nnj > bsize) continue;
+                    
+                    if (visited[nni * bsize_idx + nnj] == current_marker) continue;
+                    
                     if (getBoard(nni, nnj) == op_color) {
-                        visited[nni * bsize_idx + nnj] = true;
+                        visited[nni * bsize_idx + nnj] = current_marker;
                         q.push_back(Point(nni, nnj));
                     } else if (getBoard(nni, nnj) == EMPTY) {
                         liberty++;
@@ -125,7 +133,7 @@ std::vector<Point> Board::get_next_legal_moves() {
     for (int r = 1; r <= bsize; r++) {
         for (int c = 1; c <= bsize; c++) {
             if (getBoard(r,c) == EMPTY) {
-                if (countLiberties(r,c,player) < 2 && !canEat(r,c,player)) continue;
+                if (isSuicide(r,c,player) && !canEat(r,c,player)) continue;
                 allowed_moves.push_back(Point(r,c));
             }
         }
@@ -218,7 +226,8 @@ int Board::quick_score() {
     int white_score = 0;
     
     thread_local bool visited[MAX_POINTS];
-    std::memset(visited, false, sizeof(bool));
+    thread_local TDeque q;
+    std::memset(visited, false, sizeof(visited));;
 
     for (int i = 1; i <= bsize; i++) {
         for (int j = 1; j <= bsize; j++) {
@@ -236,7 +245,7 @@ int Board::quick_score() {
                 bool touches_black = false;
                 bool touches_white = false;
                 
-                std::deque<Point> q;
+                q.clear();
                 q.push_back(Point(i, j));
                 visited[idx] = 1;
                 
