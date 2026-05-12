@@ -74,6 +74,18 @@ public:
         return &table[index];
     }
 
+    bool getStats(uint64_t board_hash, double* wins, double* sims) {
+        TNode* node = getNode(board_hash);
+        if (node->hash != board_hash) {
+            *wins = 0.0;
+            *sims = 0.0;
+            return false;
+        }
+        *wins = node->wins;
+        *sims = node->sims;
+        return true;
+    }
+
     void updateNode(uint64_t board_hash, double wins_to_add, double sims_to_add, uint64_t current_time) {
         uint64_t index = board_hash % table_size;
         TNode& node = table[index];
