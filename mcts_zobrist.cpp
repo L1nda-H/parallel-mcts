@@ -13,33 +13,60 @@
 #include "zobrist.h"
 #include "omp.h"
 #include "mpi.h"
-#include "common.h"
 
 Point Mcts_zobrist::run(Board* curr_board, int rank, int& num_games) {
 	int bsize = curr_board->get_bsize();
+
+    if (omp_get_max_threads() <= 1) {
+        if (rank == 0) {
+            std::cerr << "Requires at least 2 threads per node.\n";
+        }
+        MPI_Abort(MPI_COMM_WORLD, 1);
+    }
+
+    table->startIoThread();
 
     clock_gettime(CLOCK_REALTIME, &start);
     std::vector<uint64_t> search_path;
 
     ZobristHash z = curr_board->get_htable();
     int games = 0;
+    int num_worker_tasks = omp_get_max_threads() - 1;
 
-    #pragma omp parallel 
+    #pragma omp parallel
     {
-        // if (rank == 0 && omp_get_thread_num() == 0) std::cerr << "num threads: " << omp_get_num_threads() << "\n";
+        #pragma omp single
+        {
+            #pragma omp task
+            {
+                table->runIoThread();
+            }
 
-        Board* curr_board_copy = new Board(bsize, z);
-        Board* scratch_board = new Board(bsize, z);
-        int local_games = 0;
-        while(!checkAbort()) {
-            curr_board_copy->copy_board(curr_board);
-            run_iteration(curr_board_copy, scratch_board, rank, local_games);
+            #pragma omp taskgroup
+            {
+                for (int worker = 0; worker < num_worker_tasks; worker++) {
+                    #pragma omp task
+                    {
+                        Board* curr_board_copy = new Board(bsize, z);
+                        Board* scratch_board = new Board(bsize, z);
+                        int local_games = 0;
+                        while(!checkAbort()) {
+                            curr_board_copy->copy_board(curr_board);
+                            run_iteration(curr_board_copy, scratch_board, rank, local_games);
+                        }
+
+                        #pragma omp atomic
+                        games += local_games;
+                        delete curr_board_copy;
+                        delete scratch_board;
+                    }
+                }
+            }
+
+            table->stopIoThread();
+
+            #pragma omp taskwait
         }
-
-        #pragma omp atomic
-        games += local_games;
-        delete curr_board_copy;
-        delete scratch_board;
     }
     
     num_games += games;
@@ -49,7 +76,9 @@ Point Mcts_zobrist::run(Board* curr_board, int rank, int& num_games) {
         return Point::id_to_point(-1, bsize);
     }
 
-    double maxv = -1.0;
+    int num_possible_moves = bsize * bsize;
+    std::vector<double> local_sims(num_possible_moves, 0.0);
+    std::vector<double> global_sims(num_possible_moves, 0.0);
     std::vector<int> best_ids;
     Board* scratch_board = new Board(bsize, z);
 
@@ -61,14 +90,28 @@ Point Mcts_zobrist::run(Board* curr_board, int rank, int& num_games) {
 
         double child_wins = 0.0;
         double v = 0.0;
-        table->getStats(child_hash, &child_wins, &v);
+        if (table->owns(child_hash)) {
+            table->getStats(child_hash, &child_wins, &v);
+            if (id > -1) {
+                local_sims[id] = v;
+            }
+        }
+    }
 
-        if(v > maxv){
-            maxv = v;
-            best_ids.clear();
-            best_ids.push_back(id);
-        } else if (v == maxv) {
-            best_ids.push_back(id);
+    MPI_Reduce(local_sims.data(), global_sims.data(), num_possible_moves, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    if (rank == 0) {
+        double maxv = -1.0;
+        for (Point p : legal_moves) {
+            int id = Point::point_to_id(p, bsize);
+            double v = id > -1 ? global_sims[id] : 0.0;
+            if(v > maxv){
+                maxv = v;
+                best_ids.clear();
+                best_ids.push_back(id);
+            } else if (v == maxv) {
+                best_ids.push_back(id);
+            }
         }
     }
 
@@ -81,6 +124,8 @@ Point Mcts_zobrist::run(Board* curr_board, int rank, int& num_games) {
     thread_local std::mt19937 gen(std::random_device{}());
     std::uniform_int_distribution<int> dist(0, best_ids.size() - 1);
     int best_id = best_ids[dist(gen)];
+
+    MPI_Bcast(&best_id, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     return Point::id_to_point(best_id, bsize);
 }

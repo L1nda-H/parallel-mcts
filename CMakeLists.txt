@@ -35,6 +35,7 @@ add_executable(go_engine
     Go.cpp 
     mcts_parallel.cpp 
     mcts_zobrist.cpp
+    ttable.cpp
 )
 
 target_link_libraries(go_engine PRIVATE OpenMP::OpenMP_CXX)

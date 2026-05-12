@@ -12,9 +12,16 @@
 int main(int argc, char** argv) {
 	int num_procs, rank;
 	int num_games = 0;
-	MPI_Init(&argc, &argv);
+	int provided_thread_level = MPI_THREAD_SINGLE;
+	MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided_thread_level);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
+	if (provided_thread_level < MPI_THREAD_MULTIPLE) {
+		if (rank == 0) {
+			std::cerr << "Distributed zobrist MCTS requires MPI_THREAD_MULTIPLE support.\n";
+		}
+		MPI_Abort(MPI_COMM_WORLD, 1);
+	}
 
 	MctsEngine* mcts = nullptr;
 
@@ -115,6 +122,7 @@ int main(int argc, char** argv) {
 			move_num++;
 			num_games = 0;
 
+			log_msg("starting new run for move " + std::to_string(move_num), 0);
 			auto start_time = std::chrono::steady_clock::now();
             p = mcts->run(board, rank, num_games);
 			auto end_time = std::chrono::steady_clock::now();

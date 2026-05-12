@@ -8,6 +8,8 @@
 
 #include "common.h"
 #include "mcts.h"
+#include "mpi.h"
+#include "omp.h"
 
 class Board;
 
@@ -47,69 +49,63 @@ struct ZobristHash {
 struct TNode {
     uint64_t hash;
     std::atomic<uint64_t> timestamp;
+    omp_lock_t lock;
     Point move;
     bool expanded;
     double wins;
     double sims;
 
-    TNode() : hash(0), timestamp(1), wins(0.0), sims(0.0) {};
+    TNode() : hash(0), timestamp(1), wins(0.0), sims(0.0) {
+        omp_init_lock(&lock);
+    }
+
+    ~TNode() {
+        omp_destroy_lock(&lock);
+    }
+};
+
+struct TTableUpdate {
+    uint64_t hash;
+    double wins;
+    double sims;
+    uint64_t timestamp;
 };
 
 class TTable {
 private:
     TNode* table;
     uint64_t table_size;
-public:
-    TTable() {
-        table_size = TRANSPOSITION_TABLE_SIZE;
-        table = new TNode[TRANSPOSITION_TABLE_SIZE];
-    }
+    int mpi_rank;
+    int mpi_size;
+    MPI_Comm table_comm;
+    bool mpi_ready;
+    std::vector<std::vector<TTableUpdate> > outgoing;
+    uint64_t pending_updates;
+    omp_lock_t outgoing_lock;
+    bool io_running;
+    std::atomic<bool> stop_requested;
 
-    ~TTable() {
-        delete[] table;
-    }
+    void updateLocalNode(uint64_t board_hash, double wins_to_add, double sims_to_add, uint64_t current_time);
+    void updateRemoteNode(int dest, const TTableUpdate& update);
+    void ioLoop();
+
+public:
+    TTable();
+
+    ~TTable();
 
     TNode* getNode(uint64_t board_hash) {
         uint64_t index = board_hash % table_size;
         return &table[index];
     }
 
-    bool getStats(uint64_t board_hash, double* wins, double* sims) {
-        TNode* node = getNode(board_hash);
-        if (node->hash != board_hash) {
-            *wins = 0.0;
-            *sims = 0.0;
-            return false;
-        }
-        *wins = node->wins;
-        *sims = node->sims;
-        return true;
-    }
-
-    void updateNode(uint64_t board_hash, double wins_to_add, double sims_to_add, uint64_t current_time) {
-        uint64_t index = board_hash % table_size;
-        TNode& node = table[index];
-        uint64_t expected_time = node.timestamp.load();
-        
-        while (expected_time == 0 || !node.timestamp.compare_exchange_weak(expected_time, 0)) {
-            expected_time = node.timestamp.load();
-        }
-
-        if (node.hash != board_hash) {
-            // std::cerr << "clearing board for hash " << board_hash << "\n";
-            // fflush(stderr);
-            node.hash = board_hash;
-            node.wins = 0;
-            node.sims = 0;
-        }
-
-        // std::cerr << "adding " << sims_to_add << " for hash " << board_hash << "\n";
-        // fflush(stderr);
-        node.wins += wins_to_add;
-        node.sims += sims_to_add;
-
-        node.timestamp.store(current_time);
-    }
+    int getOwner(uint64_t board_hash) const;
+    bool owns(uint64_t board_hash) const;
+    void startIoThread();
+    void stopIoThread();
+    void runIoThread();
+    bool getStats(uint64_t board_hash, double* wins, double* sims);
+    void updateNode(uint64_t board_hash, double wins_to_add, double sims_to_add, uint64_t current_time);
 };
 
 class Mcts_zobrist : public MctsEngine{
