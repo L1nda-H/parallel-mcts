@@ -226,8 +226,8 @@ int Board::quick_score() {
     int black_score = 0;
     int white_score = 0;
     
-    thread_local bool visited[MAX_POINTS];
-    std::memset(visited, false, sizeof(bool));
+	thread_local bool visited[MAX_POINTS];
+	std::memset(visited, false, sizeof(visited));
 
     for (int i = 1; i <= bsize; i++) {
         for (int j = 1; j <= bsize; j++) {

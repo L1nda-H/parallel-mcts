@@ -44,14 +44,23 @@ int main(int argc, char** argv) {
 
 	while (running) {
 		if (root) {
-			std::getline(std::cin, command);
-			cmd_len = command.length();
+			if (!std::getline(std::cin, command)) {
+				running = false;
+				cmd_len = -1;
+			} else {
+				cmd_len = command.length();
+			}
 		}
 		MPI_Bcast(&cmd_len, 1, MPI_INT, 0, MPI_COMM_WORLD);
+		if (cmd_len < 0) {
+			break;
+		}
 		if (!root){
 			command.resize(cmd_len);
 		}
-		MPI_Bcast(&command[0], cmd_len, MPI_CHAR, 0, MPI_COMM_WORLD);
+		if (cmd_len > 0) {
+			MPI_Bcast(&command[0], cmd_len, MPI_CHAR, 0, MPI_COMM_WORLD);
+		}
 		
 		std::stringstream ss(command);
 		std::string cmd_type;

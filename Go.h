@@ -42,6 +42,7 @@ public:
 			board[(bsize_idx) * (bsize + 1) + i] = OUT;
 		}
 		zobrist = false;
+		state_hash = 0;
 		player = COLOR::BLACK; // black play first
 	}
 
@@ -56,7 +57,7 @@ public:
 			board[i] = OUT;
 			board[(bsize_idx) * (bsize + 1) + i] = OUT;
 		}
-		zobrist = false;
+		zobrist = true;
 		hash_table = ht;
 		state_hash = 0;
 
@@ -75,6 +76,7 @@ public:
 		}
 
 		player = COLOR::BLACK; // black play first
+		state_hash = 0;
 	}
 
 	void print_board();
@@ -100,8 +102,9 @@ public:
 	void copy_board(const Board* other) {
 		this->player = other->player;
 		this->state_hash = other->state_hash;
+		this->zobrist = other->zobrist;
 		
-		std::memcpy(this->board.data(), other->board.data(), this->board.size() * sizeof(int));
+		std::memcpy(this->board.data(), other->board.data(), this->board.size() * sizeof(COLOR));
 	}
 
 	int get_bsize() {
