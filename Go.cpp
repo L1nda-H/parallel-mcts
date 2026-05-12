@@ -15,6 +15,8 @@ bool Board::canEat(int i, int j, COLOR color) {
     std::memset(visited, false, sizeof(visited));
 
     for (int d = 0; d < 4; d++) {
+        q.clear(); 
+        std::memset(visited, false, sizeof(visited));
         int ni = i + dir[d][0];
         int nj = j + dir[d][1];
         
@@ -125,7 +127,15 @@ std::vector<Point> Board::get_next_legal_moves() {
     for (int r = 1; r <= bsize; r++) {
         for (int c = 1; c <= bsize; c++) {
             if (getBoard(r,c) == EMPTY) {
-                if (countLiberties(r,c,player) < 2 && !canEat(r,c,player)) continue;
+                if (countLiberties(r,c,player) < 1 && !canEat(r,c,player)) continue;
+                if (canEat(r, c, player)) {
+                    Board temp(bsize, hash_table);
+                    temp.copy_board(this);
+                    temp.update_board(Point(r,c));
+                    if (temp.get_hash() == this->prev_state_hash) {
+                        continue;
+                    }
+                }
                 allowed_moves.push_back(Point(r,c));
             }
         }
@@ -299,5 +309,5 @@ int Board::quick_score() {
         }
     }
 
-    return (black_score) - (white_score + KOMI); 
+    return (black_score) - (white_score); 
 }

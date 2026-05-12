@@ -46,7 +46,15 @@ def run_match(engine1_cmd, engine2_cmd, games=1):
             out_log.write(msg + "\n")
             out_log.flush()
 
-        def compare_boards(black, white, b_name, w_name, game_num, move_num):
+        def log_play_response(game_num, move_num, recipient_name, command, response):
+            if response.strip().startswith("?"):
+                my_log.write(f"Rejected play in game {game_num}, move {move_num}\n")
+                my_log.write(f"Recipient: {recipient_name}\n")
+                my_log.write(f"Command: {command}\n")
+                my_log.write(f"Response: {response}\n\n")
+                my_log.flush()
+
+        def compare_boards(black, white, b_name, w_name, game_num, move_num, b_move, w_move):
             black_board = gtp_cmd(black, "showboard")
             white_board = gtp_cmd(white, "showboard")
 
@@ -59,6 +67,8 @@ def run_match(engine1_cmd, engine2_cmd, games=1):
 
             if normalize_board(bot_board) != normalize_board(pachi_board):
                 my_log.write(f"Board divergence in game {game_num}, move {move_num}\n")
+                my_log.write(f"Black ({b_name}) played: {b_move}\n")
+                my_log.write(f"White ({w_name}) played: {w_move}\n")
                 my_log.write("--- Parallel MCTS board ---\n")
                 my_log.write(bot_board + "\n")
                 my_log.write("--- Pachi board ---\n")
@@ -139,15 +149,21 @@ def run_match(engine1_cmd, engine2_cmd, games=1):
                     elif w_move.lower() == "resign": passes = 3
                     else: passes = 0
                     
-                    gtp_cmd(black, f"play w {w_move}") # Tell Black what White did
+                    if w_move.lower() == "resign":
+                        break
+
+                    play_cmd = f"play w {w_move}"
+                    play_response = gtp_cmd(black, play_cmd) # Tell Black what White did
+                    log_play_response(i + 1, moves + 1, b_name, play_cmd, play_response)
                     moves += 1
 
-                    curr_board = compare_boards(black, white, b_name, w_name, i + 1, moves)
+                    curr_board = compare_boards(black, white, b_name, w_name, i + 1, moves, b_move, w_move)
+                    log_print(f"After move {moves}:")
                     log_print(curr_board)
             
                 # Retrieve and log the final board state
                 log_print("\n--- Final Board State ---")
-                final_board = compare_boards(black, white, b_name, w_name, i + 1, moves)
+                final_board = gtp_cmd(black if b_name == "Pachi" else white, "showboard")
                 log_print(final_board)
                 log_print("") # Add an empty line for spacing
                 

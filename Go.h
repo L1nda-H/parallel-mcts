@@ -12,9 +12,6 @@
 #include <cstring>
 #include <stdexcept>
 
-// TODO pachi has a different concept of komi, so we might just remove this
-#define KOMI 0
-
 class Board {
 private:
 	int dir[4][2] = {{1, 0}, {0, 1}, { -1, 0}, {0, -1}};
@@ -24,6 +21,7 @@ private:
 	bool zobrist;
 	ZobristHash hash_table;
 	uint64_t state_hash;
+	uint64_t prev_state_hash;
 	int countLiberties(int i, int j, COLOR color);
 	COLOR player;	// current player
 	int bsize;
@@ -43,6 +41,7 @@ public:
 		}
 		zobrist = false;
 		state_hash = 0;
+		prev_state_hash = 0;
 		player = COLOR::BLACK; // black play first
 	}
 
@@ -60,6 +59,7 @@ public:
 		zobrist = true;
 		hash_table = ht;
 		state_hash = 0;
+		prev_state_hash = 0;
 
 		player = COLOR::BLACK; // black play first
 	}
@@ -77,6 +77,7 @@ public:
 
 		player = COLOR::BLACK; // black play first
 		state_hash = 0;
+		prev_state_hash = 0;
 	}
 
 	void print_board();
@@ -102,6 +103,7 @@ public:
 	void copy_board(const Board* other) {
 		this->player = other->player;
 		this->state_hash = other->state_hash;
+		this->prev_state_hash = other->prev_state_hash;
 		this->zobrist = other->zobrist;
 		
 		std::memcpy(this->board.data(), other->board.data(), this->board.size() * sizeof(COLOR));
