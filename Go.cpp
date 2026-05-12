@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <iostream>
+#include <iomanip>
 #include "Go.h"
 #include "tdeque.h"
 
@@ -198,28 +199,45 @@ int Board::update_board(Point pos) {
 }
 
 void Board::print_board() {
-    for (int i = 0; i < bsize + 1; i++) {
-        std::cout << "=";
+    std::cout << "      ";
+    for (int j = 1; j <= bsize; j++) {
+        char col = 'A' + j - 1;
+        if (col >= 'I') {
+            col++;
+        }
+        std::cout << col;
+        if (j < bsize) {
+            std::cout << " ";
+        }
     }
     std::cout << "\n";
-    
-    for (int i = 1; i < bsize + 1 ; i++) {
-        for (int j = 1; j < bsize + 1; j++) {
+
+    std::cout << "    +";
+    for (int j = 0; j < 2 * bsize + 1; j++) {
+        std::cout << "-";
+    }
+    std::cout << "+\n";
+
+    for (int i = 1; i <= bsize ; i++) {
+        std::cout << std::setw(3) << (bsize + 1 - i) << " |";
+        for (int j = 1; j <= bsize; j++) {
+            std::cout << " ";
             if (getBoard(i, j) == WHITE) {
-                std::cout << "O ";
+                std::cout << "O";
             } else if (getBoard(i, j) == BLACK) {
-                std::cout << "X ";
+                std::cout << "X";
             } else {
-                std::cout << ". ";
+                std::cout << ".";
             }
         }
-        std::cout << "\n";
+        std::cout << " |\n";
     }
-    
-    for (int i = 0; i < bsize + 1; i++) {
-        std::cout << "=";
+
+    std::cout << "    +";
+    for (int j = 0; j < 2 * bsize + 1; j++) {
+        std::cout << "-";
     }
-    std::cout << "\n";
+    std::cout << "+\n";
 }
 
 int Board::quick_score() {

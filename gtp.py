@@ -1,4 +1,5 @@
 import subprocess
+import re
 
 MOVE_LIMIT = 150
 
@@ -23,6 +24,15 @@ def gtp_cmd(process, cmd):
         
     return response.strip()
 
+def normalize_board(board):
+    rows = []
+    for line in board.strip().splitlines():
+        match = re.match(r"^\s*\d+\s*\|(.*)\|\s*$", line)
+        if not match:
+            continue
+        rows.append("".join(re.findall(r"[XO.]", match.group(1))))
+    return "\n".join(rows)
+
 def run_match(engine1_cmd, engine2_cmd, games=1):
     wins_e1 = 0
     wins_e2 = 0
@@ -35,6 +45,27 @@ def run_match(engine1_cmd, engine2_cmd, games=1):
             print(msg)
             out_log.write(msg + "\n")
             out_log.flush()
+
+        def compare_boards(black, white, b_name, w_name, game_num, move_num):
+            black_board = gtp_cmd(black, "showboard")
+            white_board = gtp_cmd(white, "showboard")
+
+            if b_name == "Pachi":
+                pachi_board = black_board
+                bot_board = white_board
+            else:
+                pachi_board = white_board
+                bot_board = black_board
+
+            if normalize_board(bot_board) != normalize_board(pachi_board):
+                my_log.write(f"Board divergence in game {game_num}, move {move_num}\n")
+                my_log.write("--- Parallel MCTS board ---\n")
+                my_log.write(bot_board + "\n")
+                my_log.write("--- Pachi board ---\n")
+                my_log.write(pachi_board + "\n\n")
+                my_log.flush()
+
+            return pachi_board
 
         log_print(f"Starting {games}-game benchmark...")
 
@@ -111,17 +142,12 @@ def run_match(engine1_cmd, engine2_cmd, games=1):
                     gtp_cmd(black, f"play w {w_move}") # Tell Black what White did
                     moves += 1
 
-                    curr_board = gtp_cmd(white if w_name == "Pachi" else black, "showboard")
-                    
+                    curr_board = compare_boards(black, white, b_name, w_name, i + 1, moves)
                     log_print(curr_board)
-
-                    # curr_board = gtp_cmd(black if w_name == "Pachi" else white, "showboard")
-                    
-                    # log_print(curr_board)
             
                 # Retrieve and log the final board state
                 log_print("\n--- Final Board State ---")
-                final_board = gtp_cmd(white if w_name == "Pachi" else black, "showboard")
+                final_board = compare_boards(black, white, b_name, w_name, i + 1, moves)
                 log_print(final_board)
                 log_print("") # Add an empty line for spacing
                 
