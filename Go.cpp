@@ -222,14 +222,9 @@ int Board::quick_score() {
     int black_score = 0;
     int white_score = 0;
     
-<<<<<<< HEAD
     thread_local bool visited[MAX_POINTS];
     thread_local TDeque q;
     std::memset(visited, false, sizeof(visited));;
-=======
-	thread_local bool visited[MAX_POINTS];
-	std::memset(visited, false, sizeof(visited));
->>>>>>> 86ce986383bd60aac907b4f0e3579febb801e6b5
 
     for (int i = 1; i <= bsize; i++) {
         for (int j = 1; j <= bsize; j++) {
