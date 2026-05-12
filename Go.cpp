@@ -128,16 +128,8 @@ std::vector<Point> Board::get_next_legal_moves() {
     for (int r = 1; r <= bsize; r++) {
         for (int c = 1; c <= bsize; c++) {
             if (getBoard(r,c) == EMPTY) {
-                if (r == ko.i && r == ko.j) continue;
+                if (r == ko.i && c == ko.j) continue;
                 if (countLiberties(r,c,player) < 1 && !canEat(r,c,player)) continue;
-                if (canEat(r, c, player)) {
-                    Board temp(bsize, hash_table);
-                    temp.copy_board(this);
-                    temp.update_board(Point(r,c));
-                    if (temp.get_hash() == this->prev_state_hash) {
-                        continue;
-                    }
-                }
                 allowed_moves.push_back(Point(r,c));
             }
         }
@@ -196,6 +188,11 @@ int Board::update_board(Point pos) {
             }
             if (liberty == 0) {
 				total += q2.size();
+                if (op_color == WHITE) {
+                    wEaten += total;
+                } else {
+                    bEaten += total;
+                }
 				for (int it = q2.head; it != q2.tail; it++) {
 					Point p = q2.get(it);
                     if (zobrist) {

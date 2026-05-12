@@ -9,7 +9,11 @@ def gtp_cmd(process, cmd):
     
     lines = []
     while True:
-        line = process.stdout.readline().decode('utf-8')
+        raw_line = process.stdout.readline()
+        if raw_line == b"":
+            raise RuntimeError(f"GTP process exited while waiting for response to: {cmd}")
+
+        line = raw_line.decode('utf-8')
         
         if line == "\n" or line == "\r\n": 
             break

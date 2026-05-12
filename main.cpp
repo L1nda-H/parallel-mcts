@@ -41,6 +41,8 @@ int main(int argc, char** argv) {
 	Point p = Point(-1, -1);
 	Board* board;
 	int step = 0;
+	int resign_threshold = 0;
+	bool resign = false;
 
 	std::string command;
 	bool running = true;
@@ -94,6 +96,7 @@ int main(int argc, char** argv) {
 			ss >> board_size;
 			z.buildTable(board_size);
 			board = new Board(board_size, z);
+			resign_threshold = (board_size * board_size) >> 1;
 			if (root) std::cout << "=\n\n";
 		} else if (cmd_type == "clear_board")
 		{
@@ -109,9 +112,17 @@ int main(int argc, char** argv) {
 			
 			Point p = Point (coord, board->get_bsize());
 			board->update_board(p);
+			if ((board->lose_by() >= resign_threshold && board->ToPlay() == BLACK) ||
+				(board->lose_by() <= (resign_threshold * -1) && board->ToPlay() == WHITE)) {
+				resign = true;
+			}
 			if (root) std::cout << "=\n\n";
 		} else if (cmd_type == "genmove")
 		{
+			if (resign) {
+				if (root) std::cout << "resign\n\n";
+				break;
+			}
 			std::string color;
             ss >> color;
 			if (zobrist) {
@@ -122,7 +133,6 @@ int main(int argc, char** argv) {
 			move_num++;
 			num_games = 0;
 
-			log_msg("starting new run for move " + std::to_string(move_num), 0);
 			auto start_time = std::chrono::steady_clock::now();
             p = mcts->run(board, rank, num_games);
 			auto end_time = std::chrono::steady_clock::now();
@@ -140,7 +150,6 @@ int main(int argc, char** argv) {
                 }
                 char gps_msg[256];
                 snprintf(gps_msg, sizeof(gps_msg), "# %d, %.2f", num_games, seconds);
-
                 std::cout << "= " << gtp_coord << "\n" << gps_msg << "\n\n";
             }
             delete mcts;
