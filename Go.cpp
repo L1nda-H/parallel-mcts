@@ -2,6 +2,7 @@
 #include <iostream>
 #include <iomanip>
 #include "Go.h"
+#include "mcts.h"
 #include "tdeque.h"
 
 bool Board::canEat(int i, int j, COLOR color) {
@@ -127,6 +128,7 @@ std::vector<Point> Board::get_next_legal_moves() {
     for (int r = 1; r <= bsize; r++) {
         for (int c = 1; c <= bsize; c++) {
             if (getBoard(r,c) == EMPTY) {
+                if (r == ko.i && r == ko.j) continue;
                 if (countLiberties(r,c,player) < 1 && !canEat(r,c,player)) continue;
                 if (canEat(r, c, player)) {
                     Board temp(bsize, hash_table);
@@ -165,6 +167,7 @@ int Board::update_board(Point pos) {
     q2.clear();
 
     int total = 0;
+    Point captured_point(-1, -1);
     for(int d = 0; d < 4; d++) {
         int ni = pos.i + dir[d][0];
         int nj = pos.j + dir[d][1];
@@ -200,11 +203,19 @@ int Board::update_board(Point pos) {
                         state_hash = hash_table.updateHash(state_hash, pos, getBoard(p.i, p.j));
                     }
 					setBoard(p.i, p.j, COLOR::EMPTY);
+                    captured_point = p;
 				}
 			}
 			q2.clear();
         }
     }
+
+    if (total == 1) {
+        ko = captured_point;
+    } else{
+        ko = Point(-1, -1);
+    }
+
     return total;
 }
 

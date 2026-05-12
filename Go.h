@@ -26,6 +26,7 @@ private:
 	COLOR player;	// current player
 	int bsize;
 	int bsize_idx;
+	Point ko = Point(-1, -1);
 
 public:
 	Board(int board_size) {
