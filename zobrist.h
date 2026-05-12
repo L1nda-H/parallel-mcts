@@ -5,6 +5,8 @@
 #include <vector>
 #include <atomic>
 #include <iostream>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "common.h"
 #include "mcts.h"
@@ -79,14 +81,16 @@ private:
     int mpi_size;
     MPI_Comm table_comm;
     bool mpi_ready;
-    std::vector<std::vector<TTableUpdate> > outgoing;
+    std::unordered_set<uint64_t> shared_hashes;
+    std::unordered_map<uint64_t, size_t> shared_hash_index;
+    std::vector<TTableUpdate> pending_shared_updates;
+    double pending_shared_sims;
     uint64_t pending_updates;
     omp_lock_t outgoing_lock;
     bool io_running;
     std::atomic<bool> stop_requested;
 
     void updateLocalNode(uint64_t board_hash, double wins_to_add, double sims_to_add, uint64_t current_time);
-    void updateRemoteNode(int dest, const TTableUpdate& update);
     void ioLoop();
 
 public:
@@ -99,9 +103,7 @@ public:
         return &table[index];
     }
 
-    int getOwner(uint64_t board_hash) const;
-    bool owns(uint64_t board_hash) const;
-    void startIoThread();
+    void startIoThread(const std::unordered_set<uint64_t>& hashes_to_share);
     void stopIoThread();
     void runIoThread();
     bool getStats(uint64_t board_hash, double* wins, double* sims);

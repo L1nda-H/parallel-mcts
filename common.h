@@ -10,6 +10,8 @@
 #define MILLION 1000000.0
 #define VIRTUAL_LOSS 0.5
 #define TT_REMOTE_BATCH_THRESHOLD 512
+#define TT_SHARE_DEPTH 1
+
 #define DEBUGMODE true
 
 enum COLOR {
