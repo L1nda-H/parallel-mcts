@@ -105,6 +105,7 @@ public:
     void stopIoThread();
     void runIoThread();
     bool getStats(uint64_t board_hash, double* wins, double* sims);
+    void updateLocalVirtualLoss(uint64_t board_hash, uint64_t current_time);
     void updateNode(uint64_t board_hash, double wins_to_add, double sims_to_add, uint64_t current_time);
 };
 

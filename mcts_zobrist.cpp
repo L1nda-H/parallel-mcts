@@ -232,7 +232,7 @@ void Mcts_zobrist::run_iteration(Board* curr_board, Board* scratch_board, int ra
             break;
         }
 
-        table->updateNode(current_hash, 0, VIRTUAL_LOSS, move);
+        table->updateLocalVirtualLoss(current_hash, move);
 
         if (best_move.i == -1) {
             consecutive_passes++;

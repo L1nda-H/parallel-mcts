@@ -92,7 +92,6 @@ void TTable::stopIoThread() {
         return;
     }
     stop_requested = true;
-    log_msg("rank 0 stopped a runIoThread", 0);
     omp_unset_lock(&outgoing_lock);
 }
 
@@ -100,7 +99,6 @@ void TTable::runIoThread() {
     if (!mpi_ready || mpi_size <= 1) {
         return;
     }
-    log_msg("rank 0 starting a runIoThread", 0);
     ioLoop();
 }
 
@@ -153,6 +151,14 @@ void TTable::updateRemoteNode(int dest, const TTableUpdate& update) {
     outgoing[dest].push_back(update);
     pending_updates++;
     omp_unset_lock(&outgoing_lock);
+}
+
+void TTable::updateLocalVirtualLoss(uint64_t board_hash, uint64_t current_time) {
+    if (!owns(board_hash)) {
+        return;
+    }
+
+    updateLocalNode(board_hash, 0.0, VIRTUAL_LOSS, current_time);
 }
 
 void TTable::updateNode(uint64_t board_hash, double wins_to_add, double sims_to_add, uint64_t current_time) {
