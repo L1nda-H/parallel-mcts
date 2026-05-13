@@ -151,7 +151,7 @@ void TTable::updateNode(uint64_t board_hash, double wins_to_add, double sims_to_
     if (io_running && it != shared_hash_index.end()) {
         TTableUpdate& update = pending_shared_updates[it->second];
         update.wins += wins_to_add;
-        update.sims += sims_to_add;
+        update.sims += sims_to_add + VIRTUAL_LOSS;
         update.timestamp = current_time;
         if (sims_to_add > 0.0) {
             pending_shared_sims += 1.0;
@@ -193,6 +193,8 @@ void TTable::ioLoop() {
                     if (update.wins == 0.0 && update.sims == 0.0) {
                         continue;
                     }
+                    // std::string msg = "updating hash " + std::to_string(update.hash) + " with " + std::to_string(update.wins) + ", " + std::to_string(update.sims);
+                    // log_msg(msg, mpi_rank);
                     updateLocalNode(update.hash, update.wins, update.sims, update.timestamp);
                 }
             } else if (status.MPI_TAG == TT_DONE_TAG) {

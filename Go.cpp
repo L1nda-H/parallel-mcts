@@ -129,7 +129,7 @@ std::vector<Point> Board::get_next_legal_moves() {
         for (int c = 1; c <= bsize; c++) {
             if (getBoard(r,c) == EMPTY) {
                 if (r == ko.i && c == ko.j) continue;
-                if (countLiberties(r,c,player) < 1 && !canEat(r,c,player)) continue;
+                if (isSuicide(r,c,player) && !canEat(r,c,player)) continue;
                 allowed_moves.push_back(Point(r,c));
             }
         }
@@ -141,6 +141,9 @@ int Board::update_board(Point pos) {
     COLOR curr_play = player;
     COLOR op_color = static_cast<COLOR>(player ^ 3);
     player = op_color;
+    if (zobrist) {
+        state_hash = hash_table.updateTurnHash(state_hash);
+    }
     if (pos.i == -1 || pos.j == -1) {
         return 0;
     }

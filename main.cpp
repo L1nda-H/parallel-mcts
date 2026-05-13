@@ -123,6 +123,7 @@ int main(int argc, char** argv) {
 				if (root) std::cout << "resign\n\n";
 				break;
 			}
+			// log_msg("num of nodes is " + std::to_string(num_procs), rank);
 			std::string color;
             ss >> color;
 			if (zobrist) {

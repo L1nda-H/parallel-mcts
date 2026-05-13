@@ -114,6 +114,7 @@ public:
 		this->zobrist = other->zobrist;
 		this->bEaten = other->bEaten;
 		this->wEaten = other->wEaten;
+		this->ko = other->ko;
 		
 		std::memcpy(this->board.data(), other->board.data(), this->board.size() * sizeof(COLOR));
 	}

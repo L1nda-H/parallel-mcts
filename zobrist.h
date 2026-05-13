@@ -18,17 +18,18 @@ class Board;
 struct ZobristHash {
     std::vector<uint64_t> wTable;
     std::vector<uint64_t> bTable;
+    uint64_t sideToMoveHash;
 
     ZobristHash() {};
 
     void buildTable (int bsize) {
-        std::random_device rd;
-        std::mt19937_64 gen(rd());
+        std::mt19937_64 gen(0x9e3779b97f4a7c15ULL);
 
         std::uniform_int_distribution<uint64_t> dis;
 
         wTable.resize(bsize * bsize);
         bTable.resize(bsize * bsize);
+        sideToMoveHash = dis(gen);
         for (int i = 0; i < bsize; i++) {
             for (int j = 0; j < bsize; j++) {
                 wTable[i * bsize + j] = dis(gen);
@@ -38,13 +39,17 @@ struct ZobristHash {
     }
 
     uint64_t updateHash(uint64_t current_hash, int pos, COLOR color) {
-        if (color == OUT) {
+        if (color == OUT || color == EMPTY) {
             return current_hash;
         }
         if (color == WHITE) {
             return current_hash ^= wTable[pos];
         }
         return current_hash ^= bTable[pos];
+    }
+
+    uint64_t updateTurnHash(uint64_t current_hash) {
+        return current_hash ^ sideToMoveHash;
     }
 };
 
