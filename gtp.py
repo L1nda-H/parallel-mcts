@@ -82,6 +82,8 @@ def run_match(engine1_cmd, engine2_cmd, games=1):
             return pachi_board
 
         log_print(f"Starting {games}-game benchmark...")
+        total_sims = 0
+        total_time = 0.0
 
         for i in range(games):
             log_print(f"\n=======================")
@@ -129,6 +131,9 @@ def run_match(engine1_cmd, engine2_cmd, games=1):
                         if line.startswith("#"):
                             log_print(f"    {line}")
                             gps_record[moves] += (f"{line} ")
+                            clean_data = line.replace("#", "").split(',')
+                            total_sims += int(clean_data[0].strip())
+                            total_time += float(clean_data[1].strip()) 
                     
                     if b_move.lower() == "pass": passes += 1
                     elif b_move.lower() == "resign": passes = 3
@@ -153,6 +158,9 @@ def run_match(engine1_cmd, engine2_cmd, games=1):
                         if line.startswith("#"):
                             log_print(f"    {line}")
                             gps_record[moves] += (f"{line} ")
+                            clean_data = line.replace("#", "").split(',')
+                            total_sims += int(clean_data[0].strip())
+                            total_time += float(clean_data[1].strip()) 
                     
                     if w_move.lower() == "pass": passes += 1
                     elif w_move.lower() == "resign": passes = 3
@@ -174,6 +182,8 @@ def run_match(engine1_cmd, engine2_cmd, games=1):
                 log_print("\n--- Final Board State ---")
                 final_board = gtp_cmd(black if b_name == "Pachi" else white, "showboard")
                 log_print(final_board)
+                gps.write("total sims: " + str(total_sims) + "\n")
+                gps.write("total time: " + str(total_time) + "\n")
                 log_print("") # Add an empty line for spacing
                 
                 # Score the board
@@ -206,4 +216,4 @@ def run_match(engine1_cmd, engine2_cmd, games=1):
 
 if __name__ == "__main__":
     # Point these directly to executables
-    run_match("srun -n 2 ./build/go_engine --zobrist", "./pachi/pachi -t 1 -d0 -o pachilog.log threads=1,policy=ucb1,playout=light,prior=eqex=0,dynkomi=none,pondering=0,pass_all_alive", games=2)
+    run_match("srun -N 2 --ntasks-per-node=16 ./build/go_engine --zobrist", "./pachi/pachi -t 1 -d0 -o pachilog.log threads=1,policy=ucb1,playout=light,prior=eqex=0,dynkomi=none,pondering=0,pass_all_alive", games=2)

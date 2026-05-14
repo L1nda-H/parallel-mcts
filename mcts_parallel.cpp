@@ -47,12 +47,14 @@ Point Mcts::run(Board* curr_board, int rank, int& num_games) {
 
 	std::vector<double> local_sims(num_moves_with_pass, 0.0);
 
-	std::vector<TreeNode*> children = root->get_children();
-	for (std::vector<TreeNode*>::iterator it = children.begin(); it != children.end(); it++) {
-		TreeNode* c = *it;
-		int id = Point::point_to_id(c->get_move(), bsize);
-		int index = id > -1 ? id : pass_index;
-		local_sims[index] = atomic_read_double(&c->sims);
+	std::vector<TreeNode*>* children = root->get_children();
+
+	if (children != nullptr) {
+		for (TreeNode* c : *children) {
+			int id = Point::point_to_id(c->get_move(), bsize);
+			int index = id > -1 ? id : pass_index;
+			local_sims[index] = atomic_read_double(&c->sims);
+		}
 	}
 
 	std::vector<double> global_sims(num_moves_with_pass, 0.0);
@@ -90,9 +92,9 @@ TreeNode* Mcts::selection(TreeNode* node) {
 		n = 1.0;
 	}
 
-	std::vector<TreeNode*> children = node->get_children();
-	for (std::vector<TreeNode*>::iterator it = children.begin(); it != children.end(); it++) {
-		TreeNode* c = *it;
+	std::vector<TreeNode*>* children = node->get_children();
+	if (children == nullptr) return node;
+	for (TreeNode* c : *children) {
 		double child_sims = atomic_read_double(&c->sims);
 		double child_wins = atomic_read_double(&c->wins);
 		if (child_sims == 0.0) {
@@ -110,15 +112,26 @@ TreeNode* Mcts::selection(TreeNode* node) {
 void Mcts::expand(TreeNode* node, Board* board) {
 	std::vector<Point> moves_vec = board->get_next_legal_moves();
 	moves_vec.push_back(Point(-1, -1));
-
-	thread_local std::mt19937 rng(std::random_device{}());
-    
-    std::shuffle(moves_vec.begin(), moves_vec.end(), rng);
 	
-	while (moves_vec.size() > 0) {
-		Point nxt_move = moves_vec.back();
-		node->add_children(new TreeNode(nxt_move));
-		moves_vec.pop_back();
+	// instead of adding to the tree, store the children locally
+	std::vector<TreeNode*>* local_children = new std::vector<TreeNode*>();
+
+	if (!moves_vec.empty()) {
+		thread_local std::mt19937 rng(std::random_device{}());
+
+		for (Point nxt_move : moves_vec) {
+			TreeNode* child = new TreeNode(nxt_move);
+			child->parent = node;
+			local_children->push_back(child);
+		}
+	}
+
+	// if compare and swap was unsuccessful, remove the local children
+	if (!node->try_set_children(local_children)) {
+		for (TreeNode* c : *local_children) {
+			delete c;
+		}
+		delete local_children;
 	}
 }
 
@@ -138,6 +151,7 @@ void Mcts::backprop(TreeNode* node, int win_increase, int sim_increase) {
 	}
 
 	if (node->parent != NULL) {
+		
 		node = node->parent;
 	}
 }
@@ -173,40 +187,36 @@ void run_simulation(Board* b, double* wins, double* sims) {
 void Mcts::run_iteration(TreeNode* root, Board* curr_board, int& num_games) {
     TreeNode* node = root;
 
-    while(!node->is_expandable() && !node->get_children().empty()) {
+	std::vector<TreeNode*>* children = node->get_children();
+
+	// while node is expandable and children not empty
+    while(children != nullptr && !children->empty()) {
         node = selection(node);
 
 		// apply virtual loss to discourage other threads 
 		#pragma omp atomic
 		node->sims += VIRTUAL_LOSS;
 
-
         curr_board->update_board(node->get_move());
+		children = node->get_children();
     }
 
-    if (node->is_expandable()) {
-        omp_set_lock(&node->lock);
-		// double check if another thread already expanded the node while this thread was waiting for the lock
-		if(node->is_expandable()){
-			expand(node, curr_board);
-			node->set_expandable(false);
-		}
-		omp_unset_lock(&node->lock);
+	// expand if expandable
+	if (children == nullptr) {
+		expand(node, curr_board);
+		children = node->get_children();
+	}
 
-
+	// if children is not empty
+	if (children != nullptr && !children->empty()) {
 		thread_local std::mt19937 rng(std::random_device{}());
+		std::uniform_int_distribution<int> dist(0, children.size() - 1);
+		node = (*children)[dist(rng)]; 
 
-		std::vector<TreeNode*> children = node->get_children();
+		apply_virtual_loss(node);
 
-        if (!children.empty()) {
-			std::uniform_int_distribution<int> dist(0, children.size() - 1);
-            node = children[dist(rng)]; 
-
-			apply_virtual_loss(node);
-
-			curr_board->update_board(node->get_move());
-        }
-    }
+		curr_board->update_board(node->get_move());
+	}
 
 	// runs one simulation
 	double wins = 0.0;

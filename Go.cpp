@@ -39,11 +39,7 @@ bool Board::canEat(int i, int j, COLOR color) {
                         q.push_back(Point(nni, nnj));
                     } else if (getBoard(nni, nnj) == EMPTY) {
                         liberty++;
-                        break;
                     }
-                }
-                if (liberty > 0) {
-                    break;
                 }
             }
             if (liberty == 0) {
@@ -53,7 +49,7 @@ bool Board::canEat(int i, int j, COLOR color) {
         }
     }
     
-    setBoard(i, j, COLOR::EMPTY);
+    setBoard(i, j, EMPTY);
     return result;
 }
 
@@ -129,7 +125,7 @@ std::vector<Point> Board::get_next_legal_moves() {
         for (int c = 1; c <= bsize; c++) {
             if (getBoard(r,c) == EMPTY) {
                 if (r == ko.i && c == ko.j) continue;
-                if (countLiberties(r,c,player) < 1 && !canEat(r,c,player)) continue;
+                if (isSuicide(r,c,player) && !canEat(r,c,player)) continue;
                 allowed_moves.push_back(Point(r,c));
             }
         }
@@ -141,6 +137,9 @@ int Board::update_board(Point pos) {
     COLOR curr_play = player;
     COLOR op_color = static_cast<COLOR>(player ^ 3);
     player = op_color;
+    if (zobrist) {
+        state_hash = hash_table.updateTurnHash(state_hash);
+    }
     if (pos.i == -1 || pos.j == -1) {
         return 0;
     }
@@ -262,8 +261,9 @@ int Board::quick_score() {
     int black_score = 0;
     int white_score = 0;
     
-	thread_local bool visited[MAX_POINTS];
-	std::memset(visited, false, sizeof(visited));
+    thread_local bool visited[MAX_POINTS];
+    thread_local TDeque q;
+    std::memset(visited, false, sizeof(visited));;
 
     for (int i = 1; i <= bsize; i++) {
         for (int j = 1; j <= bsize; j++) {
@@ -281,7 +281,7 @@ int Board::quick_score() {
                 bool touches_black = false;
                 bool touches_white = false;
                 
-                std::deque<Point> q;
+                q.clear();
                 q.push_back(Point(i, j));
                 visited[idx] = 1;
                 

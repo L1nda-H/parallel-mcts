@@ -26,6 +26,7 @@ TTable::TTable() {
     mpi_size = 1;
     table_comm = MPI_COMM_WORLD;
     mpi_ready = false;
+    pending_shared_sims = 0.0;
     pending_updates = 0;
     io_running = false;
     stop_requested = false;
@@ -39,7 +40,6 @@ TTable::TTable() {
         MPI_Comm_rank(table_comm, &mpi_rank);
         MPI_Comm_size(table_comm, &mpi_size);
     }
-    outgoing.resize(mpi_size);
 }
 
 TTable::~TTable() {
@@ -55,18 +55,7 @@ TTable::~TTable() {
     delete[] table;
 }
 
-int TTable::getOwner(uint64_t board_hash) const {
-    if (!mpi_ready || mpi_size <= 1) {
-        return 0;
-    }
-    return static_cast<int>(board_hash % static_cast<uint64_t>(mpi_size));
-}
-
-bool TTable::owns(uint64_t board_hash) const {
-    return getOwner(board_hash) == mpi_rank;
-}
-
-void TTable::startIoThread() {
+void TTable::startIoThread(const std::unordered_set<uint64_t>& hashes_to_share) {
     if (!mpi_ready || mpi_size <= 1) {
         return;
     }
@@ -77,9 +66,20 @@ void TTable::startIoThread() {
         return;
     }
     stop_requested = false;
+    pending_shared_sims = 0.0;
     pending_updates = 0;
-    for (std::vector<TTableUpdate>& batch : outgoing) {
-        batch.clear();
+    shared_hashes = hashes_to_share;
+    shared_hash_index.clear();
+    pending_shared_updates.clear();
+    pending_shared_updates.reserve(shared_hashes.size());
+    for (uint64_t hash : shared_hashes) {
+        TTableUpdate update;
+        update.hash = hash;
+        update.wins = 0.0;
+        update.sims = 0.0;
+        update.timestamp = 1;
+        shared_hash_index[hash] = pending_shared_updates.size();
+        pending_shared_updates.push_back(update);
     }
     io_running = true;
     omp_unset_lock(&outgoing_lock);
@@ -92,7 +92,6 @@ void TTable::stopIoThread() {
         return;
     }
     stop_requested = true;
-    log_msg("rank 0 stopped a runIoThread", 0);
     omp_unset_lock(&outgoing_lock);
 }
 
@@ -100,17 +99,10 @@ void TTable::runIoThread() {
     if (!mpi_ready || mpi_size <= 1) {
         return;
     }
-    log_msg("rank 0 starting a runIoThread", 0);
     ioLoop();
 }
 
 bool TTable::getStats(uint64_t board_hash, double* wins, double* sims) {
-    if (!owns(board_hash)) {
-        *wins = 0.0;
-        *sims = 0.0;
-        return false;
-    }
-
     TNode* node = getNode(board_hash);
     uint64_t expected_time = acquireNode(*node);
 
@@ -143,31 +135,30 @@ void TTable::updateLocalNode(uint64_t board_hash, double wins_to_add, double sim
     node.timestamp.store(current_time);
 }
 
-void TTable::updateRemoteNode(int dest, const TTableUpdate& update) {
-    if (dest < 0 || dest >= mpi_size || dest == mpi_rank) {
-        updateLocalNode(update.hash, update.wins, update.sims, update.timestamp);
+void TTable::updateLocalVirtualLoss(uint64_t board_hash, uint64_t current_time) {
+    updateLocalNode(board_hash, 0.0, VIRTUAL_LOSS, current_time);
+}
+
+void TTable::updateNode(uint64_t board_hash, double wins_to_add, double sims_to_add, uint64_t current_time) {
+    updateLocalNode(board_hash, wins_to_add, sims_to_add, current_time);
+
+    if (!mpi_ready || mpi_size <= 1) {
         return;
     }
 
     omp_set_lock(&outgoing_lock);
-    outgoing[dest].push_back(update);
-    pending_updates++;
-    omp_unset_lock(&outgoing_lock);
-}
-
-void TTable::updateNode(uint64_t board_hash, double wins_to_add, double sims_to_add, uint64_t current_time) {
-    int dest = getOwner(board_hash);
-    if (dest == mpi_rank || !mpi_ready || mpi_size <= 1) {
-        updateLocalNode(board_hash, wins_to_add, sims_to_add, current_time);
-        return;
+    std::unordered_map<uint64_t, size_t>::iterator it = shared_hash_index.find(board_hash);
+    if (io_running && it != shared_hash_index.end()) {
+        TTableUpdate& update = pending_shared_updates[it->second];
+        update.wins += wins_to_add;
+        update.sims += sims_to_add + VIRTUAL_LOSS;
+        update.timestamp = current_time;
+        if (sims_to_add > 0.0) {
+            pending_shared_sims += 1.0;
+        }
+        pending_updates++;
     }
-
-    TTableUpdate update;
-    update.hash = board_hash;
-    update.wins = wins_to_add;
-    update.sims = sims_to_add;
-    update.timestamp = current_time;
-    updateRemoteNode(dest, update);
+    omp_unset_lock(&outgoing_lock);
 }
 
 void TTable::ioLoop() {
@@ -199,6 +190,11 @@ void TTable::ioLoop() {
                 std::vector<TTableUpdate> updates(byte_count / static_cast<int>(sizeof(TTableUpdate)));
                 MPI_Recv(updates.data(), byte_count, MPI_BYTE, status.MPI_SOURCE, TT_UPDATE_TAG, table_comm, MPI_STATUS_IGNORE);
                 for (const TTableUpdate& update : updates) {
+                    if (update.wins == 0.0 && update.sims == 0.0) {
+                        continue;
+                    }
+                    // std::string msg = "updating hash " + std::to_string(update.hash) + " with " + std::to_string(update.wins) + ", " + std::to_string(update.sims);
+                    // log_msg(msg, mpi_rank);
                     updateLocalNode(update.hash, update.wins, update.sims, update.timestamp);
                 }
             } else if (status.MPI_TAG == TT_DONE_TAG) {
@@ -215,15 +211,21 @@ void TTable::ioLoop() {
         bool should_stop = false;
         omp_set_lock(&outgoing_lock);
         should_stop = stop_requested;
-        should_send = pending_updates >= TT_REMOTE_BATCH_THRESHOLD || (should_stop && pending_updates > 0);
+        should_send = pending_shared_sims >= TT_REMOTE_BATCH_THRESHOLD || (should_stop && pending_updates > 0);
         if (should_send) {
             for (int dest = 0; dest < mpi_size; dest++) {
-                if (dest == mpi_rank || outgoing[dest].empty()) {
+                if (dest == mpi_rank) {
                     continue;
                 }
-                batches[dest].swap(outgoing[dest]);
-                pending_updates -= batches[dest].size();
+                batches[dest] = pending_shared_updates;
             }
+            for (TTableUpdate& update : pending_shared_updates) {
+                update.wins = 0.0;
+                update.sims = 0.0;
+                update.timestamp = 1;
+            }
+            pending_shared_sims = 0.0;
+            pending_updates = 0;
         }
         omp_unset_lock(&outgoing_lock);
 

@@ -9,8 +9,10 @@
 #define BILLION 1000000000L
 #define MILLION 1000000.0
 #define VIRTUAL_LOSS 0.5
-#define TT_REMOTE_BATCH_THRESHOLD 512
-#define DEBUGMODE true
+#define TT_REMOTE_BATCH_THRESHOLD 1024
+#define TT_SHARE_DEPTH 1
+
+#define DEBUGMODE false
 
 enum COLOR {
     EMPTY = 0,
@@ -21,7 +23,6 @@ enum COLOR {
 
 #define MAX_POINTS 450 
 #define TRANSPOSITION_TABLE_SIZE 32000000
-// #define N_SIMS_SHARE 500 // Min num of simulations that has passed a node before it must be shared
 
 inline void log_msg(std::string message, int rank) {
     if (rank == 0 && DEBUGMODE){
