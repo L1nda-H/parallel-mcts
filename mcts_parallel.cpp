@@ -13,6 +13,18 @@
 #include "mpi.h"
 #include "common.h"
 
+static double atomic_read_double(double* value) {
+	double result;
+	#pragma omp atomic read
+	result = *value;
+	return result;
+}
+
+static void apply_virtual_loss(TreeNode* node) {
+	#pragma omp atomic
+	node->sims += VIRTUAL_LOSS;
+}
+
 Point Mcts::run(Board* curr_board, int rank, int& num_games) {
 	// sync all MPI processes before starting
 	MPI_Barrier(MPI_COMM_WORLD);
@@ -30,33 +42,34 @@ Point Mcts::run(Board* curr_board, int rank, int& num_games) {
 		delete curr_board_copy;
 	}
 	int num_possible_moves = bsize * bsize;
+	int pass_index = num_possible_moves;
+	int num_moves_with_pass = num_possible_moves + 1;
 
-	double local_sims[num_possible_moves] = {0.0};
+	std::vector<double> local_sims(num_moves_with_pass, 0.0);
 
 	std::vector<TreeNode*>* children = root->get_children();
 
 	if (children != nullptr) {
 		for (TreeNode* c : *children) {
 			int id = Point::point_to_id(c->get_move(), bsize);
-			if(id > -1) {
-				local_sims[id] = c->sims;
-			}
+			int index = id > -1 ? id : pass_index;
+			local_sims[index] = atomic_read_double(&c->sims);
 		}
 	}
 
-	double global_sims[num_possible_moves] = {0.0};
+	std::vector<double> global_sims(num_moves_with_pass, 0.0);
 
-	MPI_Reduce(local_sims, global_sims, num_possible_moves, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+	MPI_Reduce(local_sims.data(), global_sims.data(), num_moves_with_pass, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
 	int best_id = -1;
 	
 	if(rank == 0){
-		double maxv = 0;
-		for(int i = 0; i < num_possible_moves; i++){
+		double maxv = -1.0;
+		for(int i = 0; i < num_moves_with_pass; i++){
 			double v = global_sims[i];
 			if(v > maxv){
 				maxv = v;
-				best_id = i;
+				best_id = (i == pass_index) ? -1 : i;
 			}
 		}
 	}
@@ -64,7 +77,7 @@ Point Mcts::run(Board* curr_board, int rank, int& num_games) {
 	MPI_Bcast(&best_id, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
 	if(rank == 0){
-		num_games += std::accumulate(global_sims, global_sims + num_possible_moves, 0);
+		num_games += std::accumulate(global_sims.begin(), global_sims.end(), 0.0);
 	}
 
 	return Point::id_to_point(best_id, bsize);
@@ -73,21 +86,21 @@ Point Mcts::run(Board* curr_board, int rank, int& num_games) {
 TreeNode* Mcts::selection(TreeNode* node) {
 	double maxv = -1.0;
 	TreeNode* maxn = NULL;
-	double n = node->sims;
+	double n = atomic_read_double(&node->sims);
 
 	if (n < 1.0) {
 		n = 1.0;
 	}
 
 	std::vector<TreeNode*>* children = node->get_children();
-
 	if (children == nullptr) return node;
-
 	for (TreeNode* c : *children) {
-		if (c->sims == 0.0) {
+		double child_sims = atomic_read_double(&c->sims);
+		double child_wins = atomic_read_double(&c->wins);
+		if (child_sims == 0.0) {
 			return c;
 		}
-		double v = c->wins / (c->sims + EPSILON) + C * sqrt(log(n + EPSILON) / (c->sims + EPSILON));
+		double v = child_wins / (child_sims + EPSILON) + C * sqrt(log(n + EPSILON) / (child_sims + EPSILON));
 		if (v > maxv) {
 			maxv = v;
 			maxn = c;
@@ -98,6 +111,7 @@ TreeNode* Mcts::selection(TreeNode* node) {
 
 void Mcts::expand(TreeNode* node, Board* board) {
 	std::vector<Point> moves_vec = board->get_next_legal_moves();
+	moves_vec.push_back(Point(-1, -1));
 	
 	// instead of adding to the tree, store the children locally
 	std::vector<TreeNode*>* local_children = new std::vector<TreeNode*>();
@@ -145,15 +159,20 @@ void Mcts::backprop(TreeNode* node, int win_increase, int sim_increase) {
 void run_simulation(Board* b, double* wins, double* sims) {
 	COLOR player = b->ToPlay();
 	int curr_step = 0;
+	int consecutive_passes = 0;
 	thread_local std::mt19937 rng(std::random_device{}());
-	while (curr_step < MAX_STEP) {
+	while (curr_step < MAX_STEP && consecutive_passes < 2) {
 		std::vector<Point> moves = b->get_next_legal_moves();
-		if (moves.size() == 0) {
-			break;
-		}
+		moves.push_back(Point(-1, -1));
 
 		std::uniform_int_distribution<int> dist(0, moves.size() - 1);
-		b->update_board(moves[dist(rng)]); 
+		Point move = moves[dist(rng)];
+		b->update_board(move);
+		if (move.i == -1) {
+			consecutive_passes++;
+		} else {
+			consecutive_passes = 0;
+		}
 
 		curr_step++;
 	}
@@ -167,9 +186,6 @@ void run_simulation(Board* b, double* wins, double* sims) {
 
 void Mcts::run_iteration(TreeNode* root, Board* curr_board, int& num_games) {
     TreeNode* node = root;
-
-	#pragma omp atomic
-	node->sims += VIRTUAL_LOSS;
 
 	std::vector<TreeNode*>* children = node->get_children();
 
@@ -194,11 +210,10 @@ void Mcts::run_iteration(TreeNode* root, Board* curr_board, int& num_games) {
 	// if children is not empty
 	if (children != nullptr && !children->empty()) {
 		thread_local std::mt19937 rng(std::random_device{}());
-		std::uniform_int_distribution<int> dist(0, children->size() - 1);
-		node = (*children)[dist(rng)];
+		std::uniform_int_distribution<int> dist(0, children.size() - 1);
+		node = (*children)[dist(rng)]; 
 
-		#pragma omp atomic
-		node->sims += VIRTUAL_LOSS;
+		apply_virtual_loss(node);
 
 		curr_board->update_board(node->get_move());
 	}
