@@ -39,11 +39,7 @@ bool Board::canEat(int i, int j, COLOR color) {
                         q.push_back(Point(nni, nnj));
                     } else if (getBoard(nni, nnj) == EMPTY) {
                         liberty++;
-                        break;
                     }
-                }
-                if (liberty > 0) {
-                    break;
                 }
             }
             if (liberty == 0) {
@@ -53,7 +49,7 @@ bool Board::canEat(int i, int j, COLOR color) {
         }
     }
     
-    setBoard(i, j, COLOR::EMPTY);
+    setBoard(i, j, EMPTY);
     return result;
 }
 
@@ -265,8 +261,9 @@ int Board::quick_score() {
     int black_score = 0;
     int white_score = 0;
     
-	thread_local bool visited[MAX_POINTS];
-	std::memset(visited, false, sizeof(visited));
+    thread_local bool visited[MAX_POINTS];
+    thread_local TDeque q;
+    std::memset(visited, false, sizeof(visited));;
 
     for (int i = 1; i <= bsize; i++) {
         for (int j = 1; j <= bsize; j++) {
@@ -284,7 +281,7 @@ int Board::quick_score() {
                 bool touches_black = false;
                 bool touches_white = false;
                 
-                std::deque<Point> q;
+                q.clear();
                 q.push_back(Point(i, j));
                 visited[idx] = 1;
                 

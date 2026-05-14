@@ -4,6 +4,7 @@
 #include <vector>
 #include <stack>
 #include <cmath>
+#include <atomic>
 
 #include "point.h"
 #include "omp.h"
@@ -13,48 +14,45 @@ class Board;
 class TreeNode {
 private:
 	Point move;
-	std::vector<TreeNode*> children;
-	bool expandable;     // unexpanded
+	std::atomic<std::vector<TreeNode*>*> children_ptr;
 
 public:
 	double wins; // Number of wins reached from this node
 	double sims; // Number of simulations done on this node
 	TreeNode* parent;
-	omp_lock_t lock;
 
 	TreeNode(Point curr_move)
-			:  expandable(true), wins(0.0), sims(0.0), parent(NULL) {
+			:  wins(0.0), sims(0.0), parent(NULL) {
 				move = curr_move;
-			omp_init_lock(&lock);
+				children_ptr.store(nullptr, std::memory_order_relaxed);
 	}
 
 	TreeNode()
-			:  expandable(true), wins(0.0), sims(0.0), parent(NULL) {
+			:  wins(0.0), sims(0.0), parent(NULL) {
 				move = Point(-1,-1);
-			omp_init_lock(&lock);
+			children_ptr.store(nullptr, std::memory_order_relaxed);
 	}
 
 	~TreeNode() {
-		for (std::vector<TreeNode*>::iterator it = children.begin(); it != children.end(); it++) {
-			delete *it;
+		std::vector<TreeNode*>* children = children_ptr.load(std::memory_order_relaxed);
+
+		if (children != nullptr) {
+			for (TreeNode* child : *children) {
+				delete child;
+			}
 		}
 		parent = NULL;
-		omp_destroy_lock(&lock);
+
 	}
 
-	bool is_expandable() {
-		return expandable;
-	}
-	void set_expandable(bool b) {
-		expandable = b;
+	// Compare and swap
+	bool try_set_children(std::vector<TreeNode*>* new_children) {
+		std::vector<TreeNode*>* expected = nullptr;
+		return children_ptr.compare_exchange_strong(expected, new_children, std::memory_order_acq_rel);
 	}
 
-	void add_children(TreeNode* child){
-		children.push_back(child);
-		child->parent = this;
-	}
-	std::vector<TreeNode*> get_children() {
-		return children;
+	std::vector<TreeNode*>* get_children() {
+		return children_ptr.load(std::memory_order_acquire);
 	}
 
 	Point get_move(){
